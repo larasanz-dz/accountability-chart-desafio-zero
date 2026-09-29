@@ -36,6 +36,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.3);
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:15.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden}
 button,input,select{font:inherit;color:inherit}
@@ -69,6 +70,46 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
 .grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 /* ---------- canvas ---------- */
+.tabs{display:flex;gap:2px;margin:2px 0 10px;border-bottom:1px solid var(--border)}
+.tab{border:1px solid transparent;border-bottom:0;background:transparent;border-radius:8px 8px 0 0;padding:7px 16px;font-size:15px;font-weight:600;color:var(--muted);margin-bottom:-1px}
+.tab:hover{color:var(--ink);background:var(--accent-bg)}
+.tab[aria-selected="true"]{color:var(--ink);background:var(--panel);border-color:var(--border);border-bottom:1px solid var(--panel);box-shadow:inset 0 3px 0 var(--accent)}
+.tab .sub{font-weight:500;color:var(--muted);font-size:13px;margin-left:6px}
+body.guide-mode .top{padding-bottom:0}
+body.guide-mode .tabs{margin-bottom:0}
+.guide-view{flex:1;overflow:auto;background:var(--canvas);padding:28px 16px 80px}
+.gv{max-width:900px;margin:0 auto;font-size:16px;line-height:1.55}
+.gv-title{font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
+.gv-src{font-size:13px;color:var(--muted);margin-bottom:18px}
+.gv-lead{font-size:17.5px;background:var(--panel);border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:10px;padding:16px 20px;margin:0 0 18px}
+.gv-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 22px}
+.gv-toc button{border:1px solid var(--border2);background:var(--panel);border-radius:999px;padding:4px 12px;font-size:13.5px;color:var(--ink2)}
+.gv-toc button:hover{background:var(--accent-bg);color:var(--accent)}
+.gv-sec{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin:0 0 16px;box-shadow:var(--shadow);scroll-margin-top:12px}
+.gv-sec h3{font-size:18px;margin:0 0 12px;letter-spacing:-.005em}
+.gv-sec p{margin:0 0 10px}
+.gv-sec p:last-child{margin-bottom:0}
+.gv-callout{background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:8px;padding:10px 14px;margin:12px 0}
+.gv-note{color:var(--ink2);font-size:15px;border-left:3px solid var(--border2);padding-left:12px;margin:12px 0}
+.gv-rule{background:var(--lead-bg);color:var(--lead-ink);border-color:var(--lead-bg)}
+.gv-rule h3{color:var(--lead-ink)}
+.gv-table{width:100%;border-collapse:collapse;margin:4px 0 8px;font-size:15px}
+.gv-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650;padding:6px 10px 6px 0;border-bottom:1.5px solid var(--border2)}
+.gv-table td{padding:9px 12px 9px 0;border-bottom:1px solid var(--border);vertical-align:top;white-space:pre-wrap}
+.gv-table tr:last-child td{border-bottom:0}
+.gv-table td:first-child{font-weight:650;width:30%}
+.gv-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.gv-steps li{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+.gv-steps .n{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.gv-steps b{display:block}
+.gv-check{list-style:none;margin:0;padding:0}
+.gv-check li{padding:7px 0 7px 30px;position:relative;border-bottom:1px solid var(--border)}
+.gv-check li:last-child{border-bottom:0}
+.gv-check li::before{content:"";position:absolute;left:2px;top:10px;width:16px;height:16px;border:1.5px solid var(--border2);border-radius:4px}
+.gv-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px}
+.gv-chain span{background:var(--accent-bg);border:1px solid var(--border2);border-radius:6px;padding:2px 9px;font-size:14px;font-weight:500}
+.gv-chain i{font-style:normal;color:var(--muted)}
+.gv-empty{max-width:600px;margin:40px auto;text-align:center;color:var(--muted)}
 #viewport{position:relative;flex:1;overflow:hidden;background:var(--canvas);touch-action:none;cursor:grab}
 #viewport.dragging{cursor:grabbing}
 #stage{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;align-items:flex-start;gap:80px;padding:28px 32px 120px;will-change:transform}
@@ -223,6 +264,12 @@ button.chip{cursor:pointer}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 @media (max-width:720px){
+  .gv-sec{padding:14px 14px}
+  .gv-table td:first-child{width:auto}
+  .gv-table,.gv-table tbody,.gv-table tr,.gv-table td{display:block;width:100%}
+  .gv-table thead{display:none}
+  .gv-table td{border:0;padding:2px 0}
+  .gv-table tr{border-bottom:1px solid var(--border);padding:8px 0}
   .top{padding:8px 16px}
   .stats{margin-left:0;width:100%}
   .legend{display:none}
@@ -242,7 +289,11 @@ button.chip{cursor:pointer}
     <span class="version" id="version"></span>
     <div class="stats" id="stats" aria-live="polite"></div>
   </div>
-  <div class="toolbar">
+  <nav class="tabs" role="tablist" aria-label="Hojas del Excel">
+    <button class="tab" role="tab" id="tabGuide" data-tab="guide" aria-controls="guideView">Guía</button>
+    <button class="tab" role="tab" id="tabChart" data-tab="chart" aria-controls="viewport">Accountability Chart</button>
+  </nav>
+  <div class="toolbar" id="toolbar">
     <div class="search">
       <input id="q" type="search" placeholder="Buscar persona, asiento, área o responsabilidad…" aria-label="Buscar">
       <span class="qc" id="qc"></span>
@@ -270,14 +321,15 @@ button.chip{cursor:pointer}
     <span class="sep"></span>
     <div class="grp">
       <button class="btn" id="openReview">Revisión</button>
-      <button class="btn" id="openGuide">Guía</button>
       <button class="btn" id="loadXlsx" title="Sustituir los datos por una nueva versión del Excel">Cargar Excel…</button>
       <input type="file" id="xlsxFile" accept=".xlsx,.xlsm,.xls" hidden>
     </div>
   </div>
 </header>
 
-<main id="viewport" aria-label="Accountability Chart">
+<section id="guideView" class="guide-view" role="tabpanel" aria-labelledby="tabGuide" hidden></section>
+
+<main id="viewport" aria-label="Accountability Chart" role="tabpanel" aria-labelledby="tabChart">
   <div id="stage"></div>
   <div class="legend" id="legend">
     <span class="sw"><span class="avatar" style="width:14px;height:14px;font-size:8px">A</span>Persona asignada</span>
@@ -656,6 +708,7 @@ function render(){
   }
   if (!M.seats.length) h = `<div style="padding:40px;max-width:520px">No se han encontrado asientos en el Excel. Comprueba que existe una hoja con las columnas «Asiento» y «5 funciones principales».</div>`;
   stage.innerHTML = h;
+  const gvw = document.getElementById('guideView'); if (gvw && !gvw.hidden) renderGuide();
   renderStats(); renderFilters(); renderSearchCount(); renderSaveState();
 }
 function renderStats(){
@@ -925,17 +978,83 @@ $('#openReview').onclick = () => {
 };
 $('#drawerBody').addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (!g) return; const id = g.dataset.go; let p = M.byId[id].parentId; while (p) { collapsed.delete(p); p = M.byId[p].parentId; } render(); focusSeat(id); flash(id); });
 function flash(id){ const el = stage.querySelector(`.card[data-id="${CSS.escape(id)}"]`); if (!el) return; el.classList.add('hit','cur'); setTimeout(() => { el.classList.remove('cur'); if (!hits.some(h => h.id === id)) el.classList.remove('hit'); }, 1600); }
-$('#openGuide').onclick = () => {
+/* ============================================================
+   Guía (hoja «Descripción» del Excel) como pestaña propia.
+   Se maqueta a partir de la estructura de filas de la hoja; el texto no se modifica.
+   ============================================================ */
+const GV_SECTION = /^(\d+\.\s|[A-ZÁÉÍÓÚÑÜ0-9 ·:¿?«»\-\.]{8,}$)/;
+function renderChain(txt){
+  const parts = txt.split('→').map(s => s.trim()).filter(Boolean);
+  if (parts.length < 3) return esc(txt);
+  return `<div class="gv-chain">${parts.map(p => `<span>${esc(p)}</span>`).join('<i>→</i>')}</div>`;
+}
+function renderGuide(){
+  const view = $('#guideView');
   const g = M.raw.guideSheet;
-  if (!g || !g.rows.length) { openDrawer('<h2>Guía</h2>', '<p>El Excel no contiene hoja de guía.</p>'); return; }
-  const b = g.rows.map(r => {
-    const c = r.map(x => String(x ?? '').trim()).filter(Boolean);
-    if (!c.length) return '';
-    if (c.length === 1) return /^(\d+\.\s|[A-ZÁÉÍÓÚÑ0-9 ·:¿?«»\-]{8,}$)/.test(c[0]) ? `<div class="guide-h">${esc(c[0])}</div>` : `<p class="guide-p">${esc(c[0])}</p>`;
-    return `<div class="guide-row${c.length > 2 ? ' three' : ''}">${c.slice(0,3).map(x => `<div>${esc(x)}</div>`).join('')}</div>`;
-  }).join('');
-  openDrawer(`<div class="area">Hoja «${esc(g.name)}» del Excel</div><h2>Guía del Accountability Chart</h2>`, b);
-};
+  if (!g || !g.rows || !g.rows.some(r => r.some(x => String(x ?? '').trim()))) {
+    view.innerHTML = '<div class="gv-empty">El Excel no contiene hoja de guía.</div>'; return;
+  }
+  const rows = g.rows.map(r => r.map(x => String(x ?? '').trim()).filter(Boolean)).filter(c => c.length);
+  let i = 0, title = '', lead = '';
+  if (rows[0] && rows[0].length === 1 && GV_SECTION.test(rows[0][0]) && !/^\d+\./.test(rows[0][0])) { title = rows[0][0]; i = 1; }
+  if (rows[i] && rows[i].length === 1 && !GV_SECTION.test(rows[i][0])) { lead = rows[i][0]; i++; }
+  const sections = []; let cur = null;
+  for (; i < rows.length; i++) {
+    const c = rows[i];
+    if (c.length === 1 && GV_SECTION.test(c[0]) && !c[0].startsWith('□')) { cur = { title: c[0], rows: [] }; sections.push(cur); continue; }
+    if (!cur) { cur = { title: '', rows: [] }; sections.push(cur); }
+    cur.rows.push(c);
+  }
+  const block = rs => {
+    let out = '', k = 0;
+    while (k < rs.length) {
+      const c = rs[k];
+      if (c.length === 1) {
+        if (c[0].startsWith('□')) {
+          let items = []; while (k < rs.length && rs[k].length === 1 && rs[k][0].startsWith('□')) items.push(rs[k++][0].replace(/^□\s*/, ''));
+          out += `<ul class="gv-check">${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`; continue;
+        }
+        const s = c[0];
+        if (/^importante\b/i.test(s)) out += `<div class="gv-callout">${esc(s)}</div>`;
+        else if (/^(nota\b|por eso\b|el tipo no\b)/i.test(s)) out += `<p class="gv-note">${esc(s)}</p>`;
+        else out += `<p>${esc(s)}</p>`;
+        k++; continue;
+      }
+      const n = c.length; const grp = [];
+      while (k < rs.length && rs[k].length === n) grp.push(rs[k++]);
+      if (n === 3 && grp.every(r => /^\d+$/.test(r[0]))) {
+        out += `<ol class="gv-steps">${grp.map(r => `<li><span class="n">${esc(r[0])}</span><div><b>${esc(r[1])}</b>${esc(r[2])}</div></li>`).join('')}</ol>`; continue;
+      }
+      const hasHead = grp.length >= 3 && grp[0].every(x => x.length <= 22);
+      const head = hasHead ? grp.shift() : null;
+      out += `<table class="gv-table">${head ? `<thead><tr>${head.map(x => `<th>${esc(x)}</th>`).join('')}</tr></thead>` : ''}<tbody>${
+        grp.map(r => `<tr>${r.map((x, j) => `<td>${j > 0 ? renderChain(x) : esc(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    }
+    return out;
+  };
+  const toc = sections.filter(s => /^\d+\./.test(s.title));
+  view.innerHTML = `<div class="gv">
+    <h2 class="gv-title">${esc(title || 'Guía del Accountability Chart')}</h2>
+    <div class="gv-src">Hoja «${esc(g.name)}» del Excel · ${esc(M.raw.fileName || '')}</div>
+    ${lead ? `<div class="gv-lead">${esc(lead)}</div>` : ''}
+    ${toc.length ? `<div class="gv-toc">${toc.map(s => `<button type="button" data-sec="${sections.indexOf(s)}">${esc(s.title)}</button>`).join('')}</div>` : ''}
+    ${sections.map((s, idx) => `<section class="gv-sec${/^REGLA/i.test(s.title) ? ' gv-rule' : ''}" id="gv-sec-${idx}">${s.title ? `<h3>${esc(s.title)}</h3>` : ''}${block(s.rows)}</section>`).join('')}
+  </div>`;
+}
+$('#guideView').addEventListener('click', e => { const b = e.target.closest('[data-sec]'); if (b) document.getElementById('gv-sec-' + b.dataset.sec).scrollIntoView({ behavior:'smooth', block:'start' }); });
+
+const KEY_TAB = 'acdz.tab.v1';
+let fitted = false;
+function setTab(tab){
+  const guide = tab === 'guide';
+  $('#tabGuide').setAttribute('aria-selected', guide); $('#tabChart').setAttribute('aria-selected', !guide);
+  $('#guideView').hidden = !guide; $('#viewport').hidden = guide; $('#toolbar').hidden = guide;
+  document.body.classList.toggle('guide-mode', guide);
+  LS.set(KEY_TAB, tab);
+  if (guide) { closeDrawer(); renderGuide(); }
+  else if (!fitted) { fitted = true; requestAnimationFrame(() => fit(false)); }
+}
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => setTab(b.dataset.tab));
 
 /* ============================================================
    Sustituir el Excel (opcional: descarga la librería SheetJS)
@@ -968,7 +1087,7 @@ document.addEventListener('keydown', e => {
 });
 
 render();
-requestAnimationFrame(() => fit(false));
+setTab(LS.get(KEY_TAB) || 'guide');
 })();
 </script>
 </body>
