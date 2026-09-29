@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accountability Chart — Desafío Zero</title>
+<style>
+:root{
+  --bg:#f4f5f7; --canvas:#eef0f3; --panel:#ffffff; --ink:#18202b; --ink2:#3a4554; --muted:#6a7482;
+  --border:#dde1e7; --border2:#c9ced6; --line:#9aa3b0; --accent:#2e5b88; --accent-bg:#e8eff7;
+  --warn:#a65a00; --warn-bg:#fff3e0; --warn-bd:#f0c98f;
+  --pend:#5d5a8c; --pend-bg:#f1f0f8; --pend-bd:#b9b5dc;
+  --ok:#2d6a4f; --mark:#ffe58a;
+  --lead-bg:#1f2b3a; --lead-ink:#f3f5f8; --lead-muted:#aab6c5;
+  --shadow:0 1px 2px rgba(20,30,45,.06),0 1px 1px rgba(20,30,45,.04);
+  --shadow-hi:0 0 0 3px rgba(46,91,136,.35);
+  --a1:#2f7f7a; --a2:#3a67a8; --a3:#b0702c; --a4:#6f5ea8; --a5:#7d8590; --a6:#8a5a44;
+  --cw:300px; --colw:348px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181e; --canvas:#101318; --panel:#1c2129; --ink:#e8ecf1; --ink2:#c5ccd6; --muted:#8e98a6;
+    --border:#2c333d; --border2:#3a424e; --line:#5b6573; --accent:#7fa8d6; --accent-bg:#1f2c3b;
+    --warn:#f0b35e; --warn-bg:#2d2213; --warn-bd:#6b4d20;
+    --pend:#b3aee6; --pend-bg:#23223a; --pend-bd:#4d4880;
+    --mark:#7a6415; --lead-bg:#2a3748; --lead-ink:#f3f5f8; --lead-muted:#a9b6c6;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181e; --canvas:#101318; --panel:#1c2129; --ink:#e8ecf1; --ink2:#c5ccd6; --muted:#8e98a6;
+  --border:#2c333d; --border2:#3a424e; --line:#5b6573; --accent:#7fa8d6; --accent-bg:#1f2c3b;
+  --warn:#f0b35e; --warn-bg:#2d2213; --warn-bd:#6b4d20;
+  --pend:#b3aee6; --pend-bg:#23223a; --pend-bd:#4d4880;
+  --mark:#7a6415; --lead-bg:#2a3748; --lead-ink:#f3f5f8; --lead-muted:#a9b6c6;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
+
+/* ---------- header ---------- */
+.top{background:var(--panel);border-bottom:1px solid var(--border);padding:10px 16px 8px;flex:none;z-index:5}
+.title-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:8px}
+.title-row h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+.draft{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--warn);border:1px solid var(--warn-bd);background:var(--warn-bg);padding:1px 7px;border-radius:4px}
+.version{font-size:12px;color:var(--muted)}
+.version button{border:0;background:none;color:var(--accent);padding:0;text-decoration:underline}
+.stats{font-size:12.5px;color:var(--ink2);margin-left:auto}
+.stats b{font-weight:650;color:var(--ink)}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.btn,.toolbar select{height:30px;border:1px solid var(--border2);background:var(--panel);border-radius:6px;padding:0 10px;font-size:13px;white-space:nowrap}
+.btn:hover{background:var(--accent-bg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+:root[data-theme="dark"] .btn.primary{color:#0e1620}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.primary{color:#0e1620}}
+.btn .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:1px}
+.search{display:flex;align-items:center;gap:4px;flex:1 1 280px;max-width:420px}
+.search input{flex:1;height:30px;border:1px solid var(--border2);border-radius:6px;padding:0 10px;background:var(--panel);min-width:0}
+.search .qc{font-size:12px;color:var(--muted);min-width:34px;text-align:center}
+.search .btn{padding:0 8px}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:13px;height:30px;padding:0 8px;border:1px solid var(--border2);border-radius:6px;background:var(--panel);user-select:none;cursor:pointer}
+.chk input{margin:0}
+.sep{width:1px;height:22px;background:var(--border);margin:0 2px}
+.grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* ---------- canvas ---------- */
+#viewport{position:relative;flex:1;overflow:hidden;background:var(--canvas);touch-action:none;cursor:grab}
+#viewport.dragging{cursor:grabbing}
+#stage{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;align-items:flex-start;gap:80px;padding:28px 32px 120px;will-change:transform}
+#stage.anim{transition:transform .28s ease}
+
+/* horizontal tree levels */
+.node{display:flex;flex-direction:column}
+.hnode{align-items:center}
+.hnode>.card{width:var(--cw)}
+.hnode.col{width:var(--colw);align-items:stretch}
+.hnode.col>.card{width:100%}
+.hkids{display:flex;align-items:flex-start;justify-content:center;position:relative;padding-top:20px}
+.hkids::before{content:"";position:absolute;top:0;left:50%;height:20px;border-left:1.5px solid var(--line)}
+.hkid{position:relative;padding:20px 16px 0;display:flex;flex-direction:column;align-items:center}
+.hkid::before,.hkid::after{content:"";position:absolute;top:0;right:50%;width:50%;height:20px;border-top:1.5px solid var(--line)}
+.hkid::after{right:auto;left:50%;border-left:1.5px solid var(--line)}
+.hkid:only-child{padding-top:0}
+.hkid:only-child::before,.hkid:only-child::after{display:none}
+.hkid:first-child::before,.hkid:last-child::after{border:0 none}
+.hkid:last-child::before{border-right:1.5px solid var(--line);border-top-right-radius:6px}
+.hkid:first-child::after{border-top-left-radius:6px}
+/* vertical seat lists */
+.vnode{align-items:stretch}
+.vnode>.card{width:100%}
+.vkids{margin-left:14px;padding-top:2px}
+.vkid{position:relative;padding:10px 0 0 16px}
+.vkid::before{content:"";position:absolute;left:0;top:0;width:14px;height:38px;border-left:1.5px solid var(--line);border-bottom:1.5px solid var(--line);border-bottom-left-radius:6px}
+.vkid:not(:last-child)::after{content:"";position:absolute;left:0;top:0;bottom:0;border-left:1.5px solid var(--line)}
+.roots{display:flex;gap:48px;align-items:flex-start}
+
+/* pending zone */
+.pending-zone{width:calc(var(--colw) + 28px);border:1.5px dashed var(--pend-bd);border-radius:12px;padding:14px;background:color-mix(in srgb,var(--pend-bg) 55%,transparent)}
+.pending-zone h2{font-size:13px;margin:0 0 2px;color:var(--pend);letter-spacing:.02em}
+.pending-zone p{margin:0 0 12px;font-size:12px;color:var(--muted)}
+.pz-list{display:flex;flex-direction:column;gap:12px}
+
+/* ---------- card ---------- */
+.card{position:relative;background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--ac,var(--a5));border-radius:8px;box-shadow:var(--shadow);padding:9px 10px 9px 12px;cursor:default;transition:opacity .15s, box-shadow .15s}
+.card.head{border-top:1px solid var(--border);background:linear-gradient(var(--panel),var(--panel)) padding-box}
+.card.head .seat{font-size:15.5px}
+.card.lead{background:var(--lead-bg);color:var(--lead-ink);border-color:var(--lead-bg);border-left-color:var(--lead-bg)}
+.card.lead .area,.card.lead .xl,.card.lead .p-empty{color:var(--lead-muted)}
+.card.lead .seat{font-size:17px}
+.card.lead .ibtn,.card.lead .toggle,.card.lead .kids-toggle{color:var(--lead-ink);border-color:rgba(255,255,255,.22)}
+.card.lead .ibtn:hover,.card.lead .toggle:hover,.card.lead .kids-toggle:hover{background:rgba(255,255,255,.1)}
+.card.lead .avatar{background:rgba(255,255,255,.14);color:var(--lead-ink)}
+.card.lead .resp-list li::marker,.card.lead .acc .lbl{color:var(--lead-muted)}
+.card.lead .acc{border-color:rgba(255,255,255,.15)}
+.card.lead a.link,.card.lead .link{color:#b9d3f0}
+.card.pending{border-style:dashed;border-left-style:solid;border-color:var(--pend-bd);border-left-color:var(--pend)}
+.card.dim{opacity:.28}
+.card.hit{box-shadow:var(--shadow-hi)}
+.card.hit.cur{box-shadow:0 0 0 3px var(--accent)}
+.card-top{display:flex;align-items:center;gap:6px;min-height:18px}
+.area{font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:10.5px;font-weight:600;border-radius:4px;padding:1px 6px;white-space:nowrap;border:1px solid transparent;line-height:16px}
+button.chip{cursor:pointer}
+.chip.warn{color:var(--warn);background:var(--warn-bg);border-color:var(--warn-bd)}
+.chip.pend{color:var(--pend);background:var(--pend-bg);border-color:var(--pend-bd)}
+.chip.soft{color:var(--muted);background:transparent;border-color:var(--border2)}
+.card.lead .chip.soft{color:var(--lead-muted);border-color:rgba(255,255,255,.25)}
+.seat{font-size:15px;font-weight:650;margin:2px 0 5px;line-height:1.28;letter-spacing:-.005em;overflow-wrap:anywhere}
+.person{display:flex;align-items:center;gap:6px;min-height:26px;flex-wrap:nowrap;min-width:0}
+.pname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.avatar{width:22px;height:22px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.avatar.empty{background:transparent;border:1.5px dashed var(--border2);color:var(--muted)}
+.pname{font-weight:600;font-size:13.5px}
+.p-empty{color:var(--muted);font-size:13px;white-space:nowrap}
+.ibtn{white-space:nowrap}
+.card.pending .area{flex-basis:100%}
+.card-top{flex-wrap:wrap}
+.p-warn{color:var(--warn);font-weight:600;font-size:13px}
+.xl{font-size:11.5px;color:var(--muted);padding-left:28px;margin-top:1px}
+.ibtn{border:1px solid var(--border2);background:transparent;border-radius:5px;font-size:12px;padding:1px 8px;line-height:18px}
+.ibtn:hover{background:var(--accent-bg)}
+.ibtn.assign{border-color:var(--accent);color:var(--accent);font-weight:600}
+.ibtn.edit{padding:1px 6px}
+.card-foot{display:flex;align-items:center;gap:6px;margin:4px 0 -2px -6px}
+.pr{margin-left:auto;display:inline-flex;align-items:center;gap:5px}
+.toggle,.kids-toggle{border:1px solid transparent;background:transparent;border-radius:5px;font-size:12px;color:var(--ink2);padding:2px 6px;display:inline-flex;align-items:center;gap:5px}
+.toggle:hover,.kids-toggle:hover{background:var(--accent-bg)}
+.toggle{width:24px;height:22px;justify-content:center;border-color:var(--border2);font-size:10px;padding:0}
+.toggle[aria-expanded="true"]{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.card.lead .toggle[aria-expanded="true"]{background:rgba(255,255,255,.14);color:var(--lead-ink)}
+.kids-toggle{white-space:nowrap}
+.kids-toggle{color:var(--muted)}
+.resp{margin-top:6px;border-top:1px solid var(--border);padding-top:8px}
+.card.lead .resp{border-color:rgba(255,255,255,.15)}
+.resp-list{margin:0;padding-left:20px;font-size:13px;line-height:1.42}
+.resp-list li{margin:0 0 5px;padding-left:2px}
+.resp-list li::marker{font-weight:700;color:var(--muted)}
+.resp-list li.hitline{background:color-mix(in srgb,var(--mark) 35%,transparent);border-radius:3px}
+.resp-bad{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:6px;padding:6px 8px;margin-bottom:6px}
+.raw{font-size:12.5px;white-space:pre-wrap;color:var(--ink2);border-left:3px solid var(--border2);padding:2px 0 2px 8px;margin-bottom:4px}
+.acc{margin-top:8px;border-top:1px dashed var(--border);padding-top:6px;font-size:12px;color:var(--ink2)}
+.acc .lbl{font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:2px}
+.card.lead .acc{color:var(--lead-muted)}
+.link{border:0;background:none;padding:0;color:var(--accent);font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+.resp .link{margin-top:6px;display:inline-block}
+
+/* zoom + legend */
+.zoom{position:absolute;right:14px;bottom:14px;display:flex;gap:4px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:var(--shadow);z-index:3}
+.zoom .btn{height:28px;min-width:30px;padding:0 8px}
+.zoom .zl{font-size:12px;color:var(--muted);min-width:42px;text-align:center}
+.legend{position:absolute;left:14px;bottom:14px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11.5px;color:var(--ink2);display:flex;gap:12px;flex-wrap:wrap;align-items:center;box-shadow:var(--shadow);z-index:3;max-width:calc(100% - 260px)}
+.legend .sw{display:inline-flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px}
+.hint{font-size:11px;color:var(--muted)}
+
+/* drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:var(--panel);border-left:1px solid var(--border);box-shadow:-8px 0 24px rgba(0,0,0,.08);z-index:20;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s ease}
+.drawer.open{transform:none}
+.drawer header{padding:14px 16px 10px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.drawer header .t{flex:1;min-width:0}
+.drawer header h2{margin:2px 0 0;font-size:17px;line-height:1.3}
+.drawer .x{border:1px solid var(--border2);background:transparent;border-radius:6px;width:30px;height:30px;font-size:16px;flex:none}
+.drawer .body{overflow:auto;padding:12px 16px 40px;flex:1}
+.drawer h3{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:18px 0 6px}
+.drawer dl{margin:0}
+.drawer dt{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650;margin-top:14px}
+.drawer dd{margin:3px 0 0;white-space:pre-wrap;font-size:13.5px}
+.drawer dd.none{color:var(--muted);font-style:italic}
+.issue{font-size:13px;border-radius:6px;padding:6px 9px;margin:0 0 6px;border:1px solid var(--border)}
+.issue.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--ink)}
+.issue.pending{background:var(--pend-bg);border-color:var(--pend-bd)}
+.issue.multi{background:var(--accent-bg);border-color:var(--border2)}
+.issue.info{color:var(--ink2)}
+.issue .src{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.rv-seat{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.rv-seat .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:6px}
+.rv-seat .h b{font-size:13.5px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)}
+.guide-h{font-size:13px;font-weight:700;margin:18px 0 6px;color:var(--ink)}
+.guide-row{display:grid;grid-template-columns:minmax(110px,32%) 1fr;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border)}
+.guide-row.three{grid-template-columns:minmax(100px,28%) 1fr minmax(90px,28%)}
+.guide-row div:first-child{font-weight:600}
+.guide-p{font-size:13px;margin:6px 0}
+
+/* popover */
+.popover{position:fixed;z-index:30;width:320px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--border2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:12px}
+.popover .pt{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:650}
+.popover .ps{font-weight:650;margin:2px 0 10px}
+.popover input{width:100%;height:32px;border:1px solid var(--border2);border-radius:6px;padding:0 9px;background:var(--panel)}
+.popover .pw{margin-top:8px;font-size:12.5px;background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:6px;padding:7px 9px}
+.popover .pn{margin-top:8px;font-size:12px;color:var(--muted)}
+.popover .pa{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.popover .err{color:var(--warn);font-size:12px;margin-top:6px}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-size:13px;z-index:40;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width:720px){
+  .top{padding:8px 16px}
+  .stats{margin-left:0;width:100%}
+  .legend{display:none}
+  .toolbar .sep{display:none}
+  .toolbar{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .toolbar .grp{flex-wrap:nowrap}
+  .search{flex:0 0 250px}
+  .stats{font-size:11.5px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title-row">
+    <h1>Accountability Chart — Desafío Zero</h1>
+    <span class="draft">BORRADOR</span>
+    <span class="version" id="version"></span>
+    <div class="stats" id="stats" aria-live="polite"></div>
+  </div>
+  <div class="toolbar">
+    <div class="search">
+      <input id="q" type="search" placeholder="Buscar persona, asiento, área o responsabilidad…" aria-label="Buscar">
+      <span class="qc" id="qc"></span>
+      <button class="btn" id="qprev" title="Coincidencia anterior" aria-label="Coincidencia anterior">↑</button>
+      <button class="btn" id="qnext" title="Siguiente coincidencia" aria-label="Siguiente coincidencia">↓</button>
+    </div>
+    <div class="grp">
+      <select id="fArea" aria-label="Filtrar por área"></select>
+      <select id="fPerson" aria-label="Filtrar por persona"></select>
+      <label class="chk"><input type="checkbox" id="fUnassigned"> Sin asignar</label>
+      <label class="chk"><input type="checkbox" id="fWarn"> Con avisos</label>
+      <button class="btn" id="fClear" hidden>Quitar filtros</button>
+    </div>
+    <span class="sep"></span>
+    <div class="grp">
+      <button class="btn" id="expandAll">Expandir todo</button>
+      <button class="btn" id="collapseAll">Contraer todo</button>
+    </div>
+    <span class="sep"></span>
+    <div class="grp">
+      <button class="btn primary" id="save">Guardar asignaciones</button>
+      <button class="btn" id="reset">Restablecer asignaciones del Excel</button>
+      <button class="btn" id="export" title="Descarga las asignaciones actuales en CSV">Exportar</button>
+    </div>
+    <span class="sep"></span>
+    <div class="grp">
+      <button class="btn" id="openReview">Revisión</button>
+      <button class="btn" id="openGuide">Guía</button>
+      <button class="btn" id="loadXlsx" title="Sustituir los datos por una nueva versión del Excel">Cargar Excel…</button>
+      <input type="file" id="xlsxFile" accept=".xlsx,.xlsm,.xls" hidden>
+    </div>
+  </div>
+</header>
+
+<main id="viewport" aria-label="Accountability Chart">
+  <div id="stage"></div>
+  <div class="legend" id="legend">
+    <span class="sw"><span class="avatar" style="width:14px;height:14px;font-size:8px">A</span>Persona asignada</span>
+    <span class="sw"><span class="avatar empty" style="width:14px;height:14px"></span>Sin asignar</span>
+    <span class="sw"><span class="chip warn">⚠ Revisar</span>Aviso</span>
+    <span class="sw"><span class="chip pend">Pendiente</span>Sin clasificar</span>
+    <span class="hint">Arrastra para moverte · Ctrl + rueda para zoom</span>
+  </div>
+  <div class="zoom">
+    <button class="btn" id="zout" aria-label="Alejar">−</button>
+    <span class="zl" id="zl">100%</span>
+    <button class="btn" id="zin" aria-label="Acercar">+</button>
+    <button class="btn" id="zfit">Ajustar</button>
+  </div>
+</main>
+
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <header><div class="t" id="drawerHead"></div><button class="x" id="drawerClose" aria-label="Cerrar">×</button></header>
+  <div class="body" id="drawerBody"></div>
+</aside>
+<div class="popover" id="pop" hidden role="dialog" aria-label="Asignar persona"></div>
+<div class="toast" id="toast"></div>
+
+<script id="excel-data" type="application/json">{"fileName": "Accountability_chart_V2.xlsx", "seatsSheet": {"name": "Asientos DZ", "rows": [["Función principal", "Asiento", "5 funciones principales", "Descripción", "Pregunta", "Accountability", "Que incluye?", "Que NO incluye?", "Tipo", "Responsable", "Comentarios", "Métrica propuesta", "Qué mide", "Reporta a"], ["", "Visionario", "1. Definir y mantener la visión y la estrategia de medio y largo plazo (V/TO)\n2. Liderar las grandes relaciones estratégicas: inversores, partners y grandes oportunidades\n3. Generar y proponer nuevas ideas, productos y líneas de evolución para DZ\n4. Resolver con creatividad los grandes problemas y decisiones estratégicas\n5. Detectar tendencias del mercado y del sector que afecten a la visión de DZ", "Define y mantiene la visión de futuro de Desafío Zero y lidera las relaciones y oportunidades estratégicas que permiten desarrollar y hacer crecer la empresa.", "¿Tenemos una visión clara de hacia dónde va Desafío Zero y estamos desarrollando las oportunidades estratégicas necesarias para hacerla realidad?", "Asegurar que Desafío Zero mantiene una visión y dirección estratégica claras y que las principales oportunidades, relaciones y decisiones estratégicas están impulsadas y alineadas con esa visión.", "Visión y estrategia de medio y largo plazo; relaciones con inversores y potenciales financiadores; grandes oportunidades y acuerdos estratégicos; partnerships y relaciones B2B; red de contactos estratégicos; apoyo e impulso estratégico a Marketing y Ventas; identificación de nuevas oportunidades de negocio y crecimiento.", "", "Estrategico/analítico", "Antonio", "Responsable de la visión y de las oportunidades estratégicas de la empresa. La implementación del sistema de gestión y la ejecución diaria corresponden al Integrador y a las Funciones Principales."], ["", "Integrador", "1. Integrar la visión y la operación\n2. Integrar y alinear las áreas clave de la empresa\n3. Resolver bloqueos y problemas interdepartamentales\n4. Asegurar accountability, ejecución, ritmo y resultados\n5. Liderar, gestionar y desarrollar al equipo directivo (LMA)", "Integra la visión con la ejecución de la empresa, asegurando la alineación entre las distintas áreas, el accountability, el ritmo de ejecución y el funcionamiento coordinado del equipo directivo.", "¿Estamos funcionando como un solo equipo, ejecutando nuestras prioridades y consiguiendo los resultados acordados?", "Asegurar que la empresa ejecuta la visión de forma coordinada, que las áreas están alineadas y que existe accountability, ritmo y resolución efectiva de los problemas que afectan al conjunto de la organización.", "Integración de visión y operación; coordinación de las Funciones Principales; alineación del equipo directivo; resolución de problemas y bloqueos interdepartamentales; seguimiento de prioridades y resultados; sistema de gestión y ritmo de ejecución; L10 y procesos de accountability; LMA del equipo directivo; identificación y resolución de problemas sistémicos; evolución de la cultura y forma de trabajo de la organización.", "", "Estrategico/analítico", "Lara", "", "", "", "Visioanario"], ["Administración y finanzas", "Función principal Administración y finanzas", "1.      Definir y ejecutar la estrategia financiera de la empresa\n2        Asegurar la rentabilidad, sostenibilidad y salud financiera de la empresa\n3        Planificar y asignar los recursos económicos de acuerdo con las prioridades de la empresa\n4        Proporcionar información financiera fiable para la toma de decisiones\n5        Establecer y supervisar el sistema de gestión y control financiero", "Asegurar la salud financiera de la empresa y proporcionar la visibilidad, planificación y control necesarios para la toma de decisiones, garantizando que los procesos financieros están definidos, documentados, comunicados y correctamente implantados en el equipo.", "¿Tenemos control sobre la situación económica de la empresa y la información necesaria para tomar decisiones financieras?", "Asegurar la salud financiera de la empresa y proporcionar la visibilidad, planificación y control necesarios para la toma de decisiones.", "Estrategia financiera; planificación financiera; presupuesto; seguimiento de rentabilidad y sostenibilidad; criterios financieros para la toma de decisiones; supervisión del P&L y cash flow; coordinación de tesorería y financiación; reporting financiero; establecimiento de controles; análisis de desviaciones; coordinación con Integrator y resto del equipo directivo en decisiones con impacto económico.", "Ejecución diaria de cobros y pagos; registro contable; presentación y gestión operativa de impuestos; gestión laboral; ejecución diaria de tesorería; relación operativa con bancos y financiadores; gestión administrativa rutinaria.", "Estrategico/analítico", "Rubén (Temporal)", "Dirección Financiera es accountable de la salud financiera y del sistema de gestión financiera, pero no ejecuta necesariamente las tareas operativas de las distintas funciones financieras.", "Resultado neto mensual (P&L)", "Si la empresa está generando beneficio o pérdida en el periodo.", "Integrador"], ["Administración y finanzas", "Cobros y pagos", "\n1        Ejecutar los cobros y pagos correspondientes conforme a las condiciones establecidas.\n2        Verificar y conciliar operativamente los cobros y pagos realizados.\n3        Gestionar las incidencias financieras relacionadas con cobros y pagos.\n4        Asegurar la correcta documentación y trazabilidad de las operaciones financieras.\n5        Proporcionar información sobre cobros y pagos a las áreas que la necesiten para gestionar sus responsabilidades.", "Gestiona las operaciones concretas por las que entra y sale dinero de la empresa, asegurando que los cobros se realizan y los pagos se ejecutan correctamente.", "¿Estamos cobrando lo que nos deben y pagando correctamente lo que debemos?", "Asegurar que los cobros y pagos de Desafío Zero se ejecutan correctamente, en plazo y con la trazabilidad y documentación financiera necesarias.", "Ejecución de cobros.\nEjecución de pagos.\nComprobación de cobros recibidos.\nSeguimiento de operaciones pendientes desde el punto de vista financiero.\nConciliación operativa de cobros y pagos.\nGestión de errores de pago.\nJustificantes y documentación.\nInformación sobre pagos recibidos o pendientes.\nCoordinación con Operaciones cuando exista una incidencia con un viajero.\nCoordinación con Contabilidad.", "Perseguir al viajero para que pague → Operaciones del Viajero.\nGestionar contratos o firmas → Operaciones del Viajero.\nGestionar cancelaciones o reembolsos con el viajero → Operaciones del Viajero.\nDecidir condiciones comerciales de pago → Marketing y Ventas / Dirección correspondiente.\nGestionar liquidez global → Control Financiero y Tesorería.\nElaborar previsiones de caja → Control Financiero y Tesorería.\nRegistrar contablemente las operaciones → Contabilidad & Administración.\nDefinir estrategia financiera → Dirección Financiera.", "Operativo/ejecutor", "", "Los pagos requieren autorización conforme al sistema establecido. La responsabilidad de este asiento es ejecutar y asegurar la correcta gestión operativa, no decidir la estrategia financiera ni contabilizar definitivamente las operaciones.", "% de cobros y pagos realizados en plazo", "Que las operaciones de entrada y salida de dinero se ejecuten correctamente y a tiempo.", "Función principal Administración y finanzas"], ["Administración y finanzas", "Control financiero y tesoreria", "\n1\tPlanificar y supervisar la liquidez y posición de tesorería\n2\tElaborar y hacer seguimiento del presupuesto y las previsiones financieras\n3\tAnalizar costes, márgenes y rentabilidad de la empresa y sus productos\n4\tAnalizar desviaciones y evolución de los resultados económicos\n5\tProporcionar reporting y análisis financiero para la toma de decisiones", "Se ocupa de supervisar la situación económica global de la empresa y anticipar cómo evolucionará, tanto en términos de caja como de resultados.", "¿Sabemos cuánto dinero tenemos, cómo estamos económicamente, qué va a pasar y por qué?", "Asegurar que la empresa mantiene una liquidez adecuada y dispone de información financiera fiable para controlar, anticipar y tomar decisiones.", "Tesorería: seguimiento de la posición de caja, previsión de cobros y pagos y necesidades de liquidez. Controlling: elaboración y seguimiento de presupuestos y previsiones, análisis de costes, márgenes, rentabilidad y desviaciones, y reporting financiero. Son dos funciones conceptualmente diferentes, agrupadas en un mismo asiento por el tamaño de la empresa. Análisis del margen real por expedición, incluyendo los principales costes directos y costes de adquisición asociados.", "Definir la estrategia financiera global → Dirección Financiera.\nEjecutar cobros y pagos → Cobros y Pagos.\nRegistrar contabilidad y cierres → Contabilidad & Administración.\nPresentar impuestos → Fiscalidad.\nNegociar financiación con bancos/inversores → Financiación.\nTomar decisiones comerciales u operativas → las áreas correspondientes.", "Estrategico/analítico", "", "Tesorería y Controlling son funciones conceptualmente diferentes, pero se agrupan en un mismo asiento por el tamaño de la empresa. Mirar el mapa completo del dinero y anticipar qué va a pasar.", "Controlling :Desviación presupuesto vs. real (%)\n\nTesoreria: Cobertura de caja / necesidades de liquidez", "Controlling: Hasta qué punto la realidad económica de la empresa se ajusta a lo presupuestado y permite detectar desviaciones.\n\nTesoreria: Mide si la liquidez disponible y prevista permite cubrir los compromisos de pago.", "Función principal Administración y finanzas"], ["Administración y finanzas", "Fiscalidad", "\n1\tAsegurar el cumplimiento de las obligaciones fiscales de la empresa\n2\tSupervisar el cálculo, presentación y pago de impuestos\n3\tAsegurar el correcto tratamiento fiscal de las operaciones de la empresa\n4\tCoordinar la relación con asesores y organismos fiscales\n5\tAnticipar y gestionar riesgos y cambios relevantes en materia fiscal", "Se asegura de que la empresa calcula, presenta y paga correctamente sus impuestos y cumple sus obligaciones fiscales.", "¿Estamos cumpliendo correctamente nuestras obligaciones fiscales?", "Asegurar el cumplimiento correcto y en plazo de las obligaciones fiscales de la empresa.", "Preparación y coordinación de declaraciones.\nRevisión del tratamiento fiscal de operaciones.\nCalendario y seguimiento de obligaciones fiscales.\nCoordinación con gestoría/asesoría fiscal.\nRequerimientos e incidencias con Hacienda.\nSeguimiento de cambios normativos con impacto en DZ.\nIdentificación de riesgos fiscales.", "Contabilidad y cierres → Contabilidad & Administración.\nGestión de caja → Control Financiero y Tesorería.\nEjecución de pagos → Cobros y Pagos.\nEstrategia financiera global → Dirección Financiera.\nGestión laboral → Gestión Laboral.", "Especialista/Técnico", "", "", "% de obligaciones fiscales presentadas y pagadas en plazo", "Cumplimiento de las obligaciones fiscales.", "Función principal Administración y finanzas"], ["Administración y finanzas", "Contabilidad & Administración", " 1       Registrar y mantener correctamente la información contable de la empresa\n2        Asegurar el cierre contable periódico y la conciliación de la información financiera\n3        Gestionar y mantener la documentación económico-administrativa\n4        Asegurar la integridad y actualización de los datos financieros y contables\n5        Proporcionar la información contable necesaria para el reporting financiero", "Registra y ordena económicamente lo que ha ocurrido y mantiene en orden la documentación y gestión administrativa financiera.", "¿Nuestros libros reflejan correctamente lo que ha ocurrido?", "Asegurar que la información contable y la administración financiera estén completas, correctas y al día.", "Altas y bajas.\nContratos y documentación laboral.\nNóminas.\nVacaciones, permisos y ausencias.\nCoordinación con gestoría/asesoría laboral.\nSeguimiento de obligaciones laborales.\nIncidencias y consultas laborales.\nArchivo y trazabilidad de documentación.", "Decidir la estrategia financiera → Dirección Financiera.\nGestionar liquidez y forecast → Control Financiero y Tesorería.\nEjecutar cobros y pagos → Cobros y Pagos.\nFiscalidad y obligaciones tributarias → Fiscalidad.\nNegociar financiación → Financiación.\nGestión laboral → Gestión Laboral.", "Operativo/ejecutor", "", "", "% de cierre contable realizado en plazo", "Que la información contable esté actualizada y disponible cuando corresponde.", "Función principal Administración y finanzas"], ["Administración y finanzas", "Financiación", "1\tIdentificar las necesidades de financiación de la empresa\n2\tDiseñar y proponer la estrategia y alternativas de financiación\n3\tGestionar la obtención y mantenimiento de financiación externa\n4\tGestionar la relación operativa con entidades financieras y financiadores\n5\tSupervisar las condiciones, costes y compromisos asociados a la financiación", "Gestiona las necesidades de dinero que la empresa no puede cubrir con su propia actividad: bancos, préstamos, inversores, etc.", "¿Tenemos o podemos conseguir la financiación que necesitamos para nuestros planes?", "Asegurar que la empresa dispone de la financiación necesaria para ejecutar sus planes, cuando sea necesario.", "Identificación de necesidades de financiación.\nAnálisis de alternativas: deuda, líneas de crédito, etc.\nPreparación de información para entidades financieras.\nRelación operativa con bancos y financiadores.\nSeguimiento de líneas y préstamos existentes.\nCondiciones, costes, vencimientos y compromisos.\nCoordinación con Dirección Financiera sobre necesidades y capacidad financiera.", "Decidir la estrategia financiera global → Dirección Financiera.\nGestionar la tesorería diaria → Control Financiero y Tesorería.\nEjecutar pagos → Cobros y Pagos.\nRegistrar contablemente la financiación → Contabilidad & Administración.\nRelación estratégica con inversores → Visionario.\nDecisiones estratégicas de entrada de capital/inversión → Visionario + Dirección Financiera.", "Estrategico/analítico", "", "", "Financiación disponible vs. financiación necesaria", "Si las necesidades de financiación previstas están cubiertas.", "Función principal Administración y finanzas"], ["Administración y finanzas", "Gestión laboral ", "1\tGestionar la incorporación y salida de las personas de la empresa\n2\tAsegurar la correcta gestión de contratos, nóminas y documentación laboral\n3\tGestionar altas, bajas, vacaciones, ausencias y demás procesos laborales\n4\tAsegurar el cumplimiento de las obligaciones laborales de la empresa\n5\tCoordinar la relación con la asesoría laboral y gestionar las incidencias laborales", "Gestiona la relación de la empresa con sus integrantes durante todo su ciclo de vida, desde su incorporación hasta su salida, y asegura el cumplimiento de las obligaciones laborales.", "¿Estamos gestionando correctamente a las personas que trabajan en la empresa y cumpliendo nuestras obligaciones como empleador?", "Asegurar que las personas tienen correctamente gestionada su relación laboral con la empresa y que se cumplen las obligaciones laborales.", "Contrataciones, altas y bajas, nóminas, registro horario, vacaciones y ausencias, documentación laboral, incidencias laborales y coordinación con asesoría laboral.", "Selección y desarrollo de personas → People / área correspondiente.\nLiderazgo y gestión del equipo → responsables de cada área.\nDefinir estructura organizativa → Integrator.\nContabilidad → Contabilidad & Administración.\nFiscalidad → Fiscalidad.\nEstrategia financiera → Dirección Financiera.", "Operativo/ejecutor", "", "", "% de obligaciones laborales gestionadas en plazo", "Que las principales obligaciones laborales se gestionen correctamente y a tiempo.", "Función principal Administración y finanzas"], ["Operaciones", "Función principal Operaciones", "1        Definir y asegurar la ejecución de la estrategia operativa\n2        Asegurar la calidad de la experiencia y el cumplimiento de los estándares de Desafío Zero\n3        Planificar y asegurar la capacidad y los recursos necesarios para la operación\n4        Asegurar la eficiencia y sostenibilidad económica de la operación\n5        Supervisar el desempeño operativo, gestionar riesgos e incidentes y asegurar la mejora continua.", "Asegurar el correcto funcionamiento global de Operaciones, equilibrando calidad de experiencia, capacidad, eficiencia y escalabilidad, y garantizando que los procesos operativos están definidos, documentados, comunicados y correctamente implantados en el equipo.", "¿La operación funciona de forma eficiente, escalable y alineada con la experiencia que queremos ofrecer?", "Asegurar el correcto funcionamiento global de Operaciones, equilibrando calidad de experiencia, capacidad, eficiencia y escalabilidad.", "Estrategia y planificación operativa.\nCapacidad de expediciones y recursos necesarios.\nCalidad y estándares de operación.\nSeguimiento de resultados operativos.\nGestión de riesgos operativos.\nGestión y coordinación de incidentes graves y situaciones de emergencia.\nProtocolos de actuación y escalado.\nCoordinación de asistencia/seguro cuando corresponda.\nRevisión y aprendizaje posterior a incidentes.\nEvaluar y proponer la viabilidad operativa de cada expedición y activar el proceso de decisión go/no-go según los criterios establecidos.\nCoordinación con Finanzas para evaluar impacto económico de decisiones operativas.", "Gestión diaria de reservas y proveedores → Logística, Reservas y Proveedores.\nDiseño y evolución de productos/destinos → Producto y Destinos.\nAtención directa al viajero → Experiencia del Viajero.\nLiderazgo de una expedición concreta → Liderazgo de Expediciones.\nSelección, formación y desarrollo de líderes → Gestión y Desarrollo de Líderes.\nRegistro, seguimiento y control financiero → Finanzas.\nDirección de Operaciones es responsable de decidir y coordinar ante incidentes graves; no significa que gestione personalmente cada incidencia.", "Estrategico/analítico", "Oliver", "", "", "", "Integrador"], ["Operaciones", "Experiencia del viajero", "1\tGestionar la atención y comunicación con el viajero durante su relación con Desafío Zero\n2\tGestionar consultas, incidencias y solicitudes de los viajeros\n3\tAsegurar el seguimiento y trazabilidad de cada caso hasta su cierre\n4\tRecoger y trasladar el feedback del viajero a las áreas responsables\n5\tAsegurar una atención coherente con los estándares de experiencia de Desafío Zero", "Gestiona la relación y comunicación con el viajero durante todo su ciclo con Desafío Zero, asegurando una atención ágil, coherente y cuidada.", "¿El viajero recibe una atención y comunicación adecuada durante toda su relación con Desafío Zero?", "Asegurar una atención y comunicación fluida con el viajero, gestionando sus consultas e incidencias y asegurando que su feedback queda registrado y llega al área responsable.", "Atención individual al viajero.\nResolución o coordinación de consultas y solicitudes.\nGestión y seguimiento de incidencias.\nRegistro y trazabilidad de casos.\nEscalado de problemas a la persona/área correspondiente.\nRecogida de feedback durante y después de la experiencia.\nIdentificación de patrones o problemas recurrentes.\nTraslado de aprendizajes a Operaciones, Producto, Marketing, etc.\nAsegurar una experiencia de atención coherente con los estándares DZ.\nSer punto de contacto para el viajero cuando necesita ayuda o tiene una incidencia.", "Preparación de documentación y requisitos del viajero → Operaciones del Viajero.\nReservas, servicios y gestión operativa con proveedores → Logística, Reservas y Proveedores.\nCambios de itinerario, diseño de alternativas o decisiones de producto → Producto y Destinos.\nGestión de una incidencia sobre el terreno durante una expedición → Liderazgo de Expediciones, con escalado cuando corresponda.\nGestión de la relación comercial y seguimiento para convertir una oportunidad → Ventas y Conversión.\nComunicación masiva, newsletters, reactivación y fidelización → Comunicación Comercial.\nGestión de reseñas y reputación pública → Comunicación Comercial / Marketing.", "Operativo/ejecutor", "", "Atención al cliente recibe el feedback y aporta el contexto del viajero. Las reseñas y comentarios públicos se gestionan desde Marketing, que coordina con Operaciones cuando necesita contexto sobre lo ocurrido. Atención al cliente es responsable de la gestión y trazabilidad del caso, pero la resolución corresponde al área responsable según la naturaleza de la incidencia. Las incidencias graves se escalan a Dirección de Operaciones.", "% de consultas e incidencias respondidas dentro del SLA", "La capacidad del área para responder y dar seguimiento al viajero dentro del tiempo de atención establecido.", "Función principal Operaciones"], ["Operaciones", "Producto y destinos", "1        Definir los criterios, estándares y principios de producto de Desafío Zero.\n2        Diseñar, mantener y mejorar productos, destinos, itinerarios, actividades y experiencias.\n3        Asegurar la viabilidad operativa de cada producto/destino, incluyendo alternativas y planes B.\n4        Preparar el producto y transferir al Leader el conocimiento y soporte necesarios para su correcta ejecución.\n5        Recoger aprendizajes de las expediciones y asegurar la evolución y mejora continua.", "Define y asegura el sistema, criterios y estándares de producto de Desafío Zero, y supervisa que los productos y destinos estén bien construidos, alineados con dichos estándares y evolucionen a partir de los aprendizajes de las expediciones.", "¿Estamos creando y manteniendo productos y destinos que representan correctamente la experiencia Desafío Zero y cumplen nuestros estándares?", "Asegurar que cada producto y destino de Desafío Zero está bien construido, es viable y diferencial, representa el estándar de experiencia de DZ y evoluciona a partir de su ejecución y aprendizaje.", "Definición de criterios y estándares de producto; diseño y evolución del sistema de producto; revisión de destinos y experiencias; acompañamiento y supervisión de los embajadores; coherencia entre destinos y experiencia DZ; revisión de aprendizajes; identificación de mejoras; validación de que cada producto/destino está preparado para ser ejecutado; coordinación con Operaciones y otras áreas cuando el desarrollo del producto lo requiera.\n\nDentro de esta función, el rol de Embajador es responsable de desarrollar y mantener un proyecto/destino concreto, asegurando que su experiencia, programa, conocimiento del destino, proveedores, alternativas y aprendizajes estén alineados con los estándares de DZ. El Embajador es la referencia para los Líderes que ejecutan expediciones de ese destino.", "Liderar o ejecutar una expedición concreta; gestión operativa diaria de reservas y proveedores, aunque el Embajador pueda participar en ellas para asegurar el correcto desarrollo del destino; atención y soporte directo al viajero; gestión, desarrollo y evaluación de la red de líderes; venta y conversión comercial; gestión financiera y contable de las expediciones; definición de la estrategia global de Operaciones.", "Estrategico/analítico", "", "Actualmente los embajadores también gestionan parte de la logística y reservas del destino. Esta responsabilidad se prevé centralizar progresivamente en Logística, Reservas y Proveedores, manteniendo en Producto y Destinos el criterio experto sobre el destino y la toma de decisiones sobre alternativas o planes B. El rol de Embajador se desarrolla dentro de este asiento. Cada Embajador es responsable de uno o varios proyectos/destinos concretos y actúa como referencia del producto para los Líderes de Expedición que lo ejecutan.", "", "", "Función principal Operaciones"], ["Operaciones", "Operaciones del viajero", "1        Asegurar que los viajeros cumplen los requisitos y plazos necesarios para participar en la expedición.\n2        Gestionar la documentación, contratos, pagos y demás requisitos asociados a cada viajero.\n3        Gestionar modificaciones, cancelaciones, reembolsos y otras incidencias administrativas del viajero.\n4        Asegurar que cada viajero dispone de la información y servicios necesarios para realizar correctamente su expedición.\n5        Asegurar el cierre operativo de la relación con el viajero y trasladar la información necesaria a las áreas correspondientes.", "Gestiona la preparación operativa y administrativa de cada viajero, verificando que cumple todos los requisitos y dispone de la documentación, reservas, seguros y pagos necesarios para realizar su expedición correctamente.", "¿Tenemos bajo control la gestión operativa de cada viajero durante todo su ciclo con Desafío Zero?", "Asegurar que cada viajero está correctamente preparado para su expedición y que toda la gestión operativa necesaria antes, durante y después del viaje se completa en plazo y queda correctamente trazada.", "Seguimiento del estado de cada reserva.\nSeguimiento de contratos y firmas pendientes.\nSeguimiento de pagos pendientes desde el punto de vista operativo del viajero.\nContacto con viajeros para conseguir que cumplan plazos.\nGestión de cancelaciones de viajeros.\nGestión operativa de reembolsos.\nModificaciones de reservas o servicios vinculados al viajero.\nDocumentación necesaria para viajar.\nInformación pre-expedición.\nSeguimiento de tareas pendientes del viajero.\nCierre operativo después de la expedición.", "Ejecutar o contabilizar cobros y pagos → Cobros y Pagos.\nGestionar liquidez o previsiones de caja → Control Financiero y Tesorería.\nRegistrar contablemente las operaciones → Contabilidad & Administración.\nDefinir o modificar el producto/destino → Producto y Destinos.\nGestionar proveedores y reservas generales de la expedición → Logística, Reservas y Proveedores.\nAtención general de incidencias o consultas del viajero → Experiencia del Viajero.\nVenta y conversión antes de la reserva → Ventas y Conversión.", "Operativo/ejecutor", "", "Operaciones es responsable de que el viajero cumpla los requisitos y plazos operativos. Finanzas interviene en la correcta gestión financiera de los cobros y pagos, sin asumir el seguimiento operativo del viajero. Ambas áreas deben mantener un flujo de información coordinado.", "% de viajeros sin incumplimientos operativos", "El porcentaje de viajeros que cumplen todos los requisitos, documentación, pagos y plazos operativos establecidos para su expedición.", "Función principal Operaciones"], ["Operaciones", "Logística, reservas y proveedores", "1\tGestionar y centralizar las reservas y servicios necesarios para las expediciones\n2\tGestionar la relación operativa con proveedores\n3\tAsegurar la disponibilidad de recursos y servicios en plazo y condiciones acordadas\n4\tMantener la documentación y trazabilidad de reservas, proveedores y condiciones operativas\n5\tResolver y dar soporte remoto a las necesidades logísticas de las expediciones", "Centraliza y gestiona la logística, reservas y relaciones operativas con proveedores para ejecutar las expediciones de forma eficiente, trazable y escalable.", "¿Tenemos la logística y las reservas organizadas y centralizadas para ejecutar las expediciones correctamente?", "Asegurar que las reservas, proveedores y recursos logísticos necesarios para las expediciones están correctamente gestionados, centralizados y disponibles en plazo, dando soporte remoto al líder durante la expedición cuando las gestiones puedan resolverse desde el equipo interno.", "Reservas centralizadas; hoteles; transportes; vuelos internos; actividades; gestión de proveedores; condiciones y contratos; costes negociados; calendario de reservas y pagos; documentación; gestión de incidencias con proveedores; repositorio único de información operativa; soporte operativo remoto al líder: reservas, cambios, check-ins, billetes, proveedores y otras gestiones que puedan resolverse desde el equipo interno.", "Diseñar el producto o destino; decidir qué experiencia debe ofrecer el producto; definir estándares de producto; decidir qué alternativa mantiene la experiencia del destino; liderar una expedición; atención general al viajero; venta y conversión; control financiero global.", "Operativo/ejecutor", "VACANTE / por definir", "Asiento necesario en el modelo objetivo. Actualmente parte de estas responsabilidades las realizan los embajadores; se prevé su centralización para liberar al embajador y al líder de las gestiones que puedan resolverse desde el equipo interno", "", "", "Función principal Operaciones"], ["Operaciones", "Liderazgo de expediciones", "1\tLiderar y acompañar al grupo durante la expedición\n2\tEjecutar el itinerario y las experiencias previstas en destino\n3\tAsegurar la calidad de la experiencia durante la expedición\n4\tGestionar en destino las situaciones e incidencias que requieran actuación presencial\n5\tComunicar incidencias, aprendizajes y necesidades detectadas durante la expedición", "Lidera y ejecuta la expedición en destino, acompañando al grupo y asegurando la calidad de la experiencia durante el viaje.", "¿La expedición se está viviendo y ejecutando en destino con el estándar de Desafío Zero?", "Asegurar la correcta ejecución de la expedición en destino y el acompañamiento del grupo, cuidando la experiencia y gestionando las situaciones que requieran actuación en terreno", "Liderazgo y acompañamiento del grupo; ejecución del itinerario; coordinación de actividades y proveedores en destino; gestión de situaciones e incidencias que requieran presencia física; adaptación del plan ante imprevistos; comunicación con el embajador y equipo interno; cuidado de la dinámica y experiencia del grupo; cumplimiento de protocolos y estándares de seguridad; reporte de incidencias y aprendizajes al finalizar la expedición", "Diseñar o modificar estructuralmente el producto/destino; responsabilidad sobre el destino a largo plazo; gestión general de proveedores y reservas; selección, formación o evaluación de la red de líderes; venta y relación comercial; gestión financiera de la expedición.", "Operativo/ejecutor", "", "El líder es responsable de la experiencia y ejecución en terreno. Las gestiones que puedan resolverse remotamente se escalan a Producto y Destinos / Logística, Reservas y Proveedores para permitir que el líder se mantenga centrado en el grupo.", "", "", "Gestión y Desarrollo de Líderes"], ["Operaciones", "Gestión y Desarrollo de Líderes", "1        Seleccionar e incorporar Líderes de Expedición\n2        Formar, desarrollar y acompañar a los líderes en su evolución.\n3        Asegurar la disponibilidad y cobertura de líderes para las expediciones.\n4        Definir y asegurar estándares comunes de liderazgo, experiencia, seguridad y cultura.\n5        Gestionar la relación con la red de líderes, evaluar su desempeño y asegurar su continuidad y evolución.", "Gestiona y desarrolla la red de Líderes de Expedición, asegurando que su capacidad, preparación y evolución acompañan las necesidades y el crecimiento de Desafío Zero.", "¿Tenemos una red de líderes preparada y suficiente para cubrir las expediciones actuales y futuras?", "Asegurar que Desafío Zero dispone de una red de Líderes de Expedición preparada y con capacidad suficiente para cubrir las necesidades actuales y futuras de la operación y acompañar su crecimiento.", "Selección e incorporación de Líderes de Expedición; formación y desarrollo de capacidades, Forma al líder en cómo ser Líder de Desafío Zero.; asignación de líderes según capacidad, experiencia, disponibilidad y necesidades del calendario; definición y mantenimiento de estándares comunes de liderazgo, experiencia, seguridad y cultura Desafío Zero; coordinación de la formación general y de la habilitación específica por destino junto con Producto y Destinos; seguimiento del desempeño y evaluación post-expedición, incluyendo la recogida de aprendizajes y necesidades de desarrollo; gestión de la capacidad y cobertura de la red de líderes, desarrollando progresivamente su polivalencia entre destinos; soporte y escalado al líder durante la expedición cuando la situación lo requiera.", "Liderar una expedición concreta; ejecutar el itinerario; diseñar productos o destinos; responsabilidad sobre un destino concreto; gestión operativa de proveedores y reservas; atención general al viajero; venta y conversión.", "Estrategico/analítico", "", "Responsabilidad sobre la red de líderes, diferenciada de la ejecución de cada expedición. Gestiona la capacidad, desarrollo y cobertura de la red; el Líder de Expedición es responsable de la ejecución y experiencia en destino.", "", "", "Función principal Operaciones"], ["Marketing y ventas", "Función principal Marketing y Ventas", "1\tDefinir y ejecutar la estrategia de Marketing y Ventas\n2\tAsegurar un flujo suficiente y sostenible de demanda y ventas\n3\tAsegurar la eficacia y conversión del sistema comercial\n4\tAsegurar un posicionamiento y comunicación alineados con la estrategia de la empresa\n5\tMedir y optimizar el rendimiento global de Marketing y Ventas", "Asegurar el correcto funcionamiento global de Marketing y Ventas, alineando estrategia, generación de demanda, comunicación y ventas con los objetivos de crecimiento de Desafío Zero y garantizando que los procesos están definidos, documentados, comunicados y correctamente implantados en el equipo.", "¿Marketing y Ventas están generando suficiente demanda y convirtiéndola en ventas de forma eficaz y alineada con los objetivos de la empresa?", "Asegurar el correcto funcionamiento global de Marketing y Ventas, equilibrando posicionamiento, generación de demanda, conversión y crecimiento rentable.", "Supervisión de los asientos de Marketing y Ventas; definición y seguimiento de la estrategia comercial y de marketing; objetivos de captación, conversión y ventas; presupuesto y asignación de recursos; seguimiento de resultados y principales KPIs; análisis del funnel completo; coordinación entre Marketing y Ventas; identificación y resolución de problemas de capacidad, rendimiento o conversión; alineación con la estrategia global de la empresa; definición y supervisión de procesos de Marketing y Ventas, asegurando que están documentados, actualizados, accesibles y correctamente implantados.", "Ejecución diaria de campañas y canales de adquisición; creación y gestión diaria de contenidos y comunicaciones; gestión individual de leads y oportunidades; atención comercial y cierre de ventas; diseño de producto/destinos; ejecución operativa de expediciones; contabilidad y control financiero.", "Estrategico/analítico", "Rubén", "La Dirección de Marketing y Ventas integra las diferentes funciones del sistema comercial y es accountable del resultado global, pero no necesariamente ejecuta las actividades de cada área. Pricing requiere coordinación con Finanzas para asegurar márgenes y con Operaciones para considerar costes y capacidad.", "", "", "Integrador"], ["Marketing y ventas", "Estrategia, Posicionamiento y Marca", "\tDefinir el posicionamiento y la propuesta de valor de Desafío Zero\n2\tDefinir los públicos y segmentos prioritarios\n3\tDefinir los mensajes clave y criterios de comunicación de la marca\n4\tAsegurar la coherencia de la identidad y comunicación de marca en los diferentes canales\n5\tEvolucionar el posicionamiento y la propuesta de valor a partir del mercado y el aprendizaje del cliente", "Define la estrategia de marketing, el posicionamiento y la propuesta de valor de Desafío Zero, asegurando una identidad y comunicación coherentes con la experiencia que queremos ofrecer.", "¿Tenemos claro qué somos, para quién, qué ofrecemos y cómo queremos que Desafío Zero sea percibido?", "Asegurar que Desafío Zero tiene un posicionamiento claro y diferencial, dirigido a los públicos prioritarios, y que la marca y la propuesta de valor se mantienen coherentes en todos los puntos de contacto.", "Estrategia de marketing; definición de públicos y segmentos prioritarios; posicionamiento; propuesta de valor; mensajes clave; identidad y criterios de marca; tono y estilo de comunicación; arquitectura de marca; coherencia de la comunicación en los diferentes canales; evolución del posicionamiento según mercado, cliente y estrategia de empresa.", "Ejecución diaria de campañas de adquisición; gestión diaria de redes y canales; creación y envío de comunicaciones; gestión de leads; venta y cierre; diseño de productos y destinos; ejecución operativa de expediciones.", "Estrategico/analítico", "", "Define el marco estratégico y de marca que utilizan Generación de Demanda y Comunicación Comercial para ejecutar. La ejecución de campañas, contenidos y comunicaciones pertenece a las funciones correspondientes.", "", "", "Función principal Marketing y Ventas"], ["Marketing y ventas", "Generación de Demanda", "1\tDefinir y ejecutar la estrategia de captación de demanda\n2\tGestionar y optimizar los canales de adquisición\n3\tGenerar tráfico y leads cualificados hacia el funnel comercial\n4\tDesarrollar y optimizar campañas y acciones de captación\n5\tMedir y mejorar la eficiencia de la adquisición de demanda", "Atrae potenciales viajeros hacia Desafío Zero mediante los diferentes canales de captación y genera oportunidades para alimentar el proceso comercial.", "¿Estamos consiguiendo que suficientes personas adecuadas conozcan Desafío Zero y entren en nuestro funnel?", "Asegurar un flujo suficiente y sostenible de demanda cualificada hacia Desafío Zero a través de los canales de adquisición prioritarios.", "Publicidad de pago; SEO; redes sociales orientadas a captación; contenidos de captación; campañas; colaboraciones y partnerships de captación; landing pages; acciones de adquisición; gestión de canales de captación; optimización de campañas y canales.", "CRM de comunicación; segmentación; newsletters; emails; automatizaciones; comunicaciones de pre y post viaje cuando tengan finalidad relacional; fidelización; reactivación; comunicaciones a antiguos viajeros; gestión de reviews y comentarios públicos; seguimiento de engagement; coordinación con Experiencia del Viajero y Ventas.", "Estrategico/analítico", "", "Incluye la generación de tráfico y demanda. La conversión de ese tráfico en ventas pertenece a Ventas y Conversión. Los canales —publicidad, SEO, redes sociales, partnerships, etc.— no constituyen asientos independientes. Su asignación depende del objetivo principal que persigan: adquisición → Generación de Demanda; relación/reactivación → Comunicación Comercial.", "", "", "Función principal Marketing y Ventas"], ["Marketing y ventas", "Comunicación Comercial", "1\tGestionar la comunicación con la base de contactos y clientes\n2\tSegmentar y acompañar a las personas según su momento en la relación con Desafío Zero\n3\tGestionar las automatizaciones y comunicaciones de marketing\n4\tImpulsar la fidelización y reactivación de contactos y clientes\n5\tGestionar la reputación y el feedback público de la marca", "Asegurar una comunicación relevante y coherente con la comunidad y la base de contactos de Desafío Zero, desarrollando la relación, fidelización y reactivación a lo largo del ciclo de vida del cliente.", "¿Estamos comunicándonos y relacionándonos adecuadamente con las personas que ya conocemos?", "Asegurar una comunicación coherente y una relación cuidada con las personas que interactúan con Desafío Zero, favoreciendo la conversión, satisfacción, fidelización y reactivación.", "Email marketing y newsletters; gestión y segmentación de la base de contactos; automatizaciones de comunicación; comunicaciones según el momento del cliente; seguimiento de personas interesadas; reactivación de antiguos viajeros; comunicaciones antes y después del viaje; fidelización; gestión y respuesta a reseñas y comentarios públicos; gestión de la reputación en canales propios y plataformas de opinión; análisis de patrones y comportamiento de clientes.", "Generación de demanda y adquisición; estrategia de posicionamiento y marca; gestión individual de oportunidades comerciales; seguimiento y cierre de ventas; diseño de productos y destinos; atención individual de incidencias del viajero; ejecución operativa de expediciones.", "Estrategico/analítico", "", "", "Tasa de reactivación de contactos", "Mide la capacidad de volver a activar personas que ya habían tenido una interacción previa con Desafío Zero.", "Función principal Marketing y Ventas"], ["Marketing y ventas", "Ventas y Conversión", "1\tGestionar y cualificar los leads y oportunidades comerciales\n2\tGestionar el proceso comercial desde la oportunidad hasta la reserva\n3\tAcompañar al potencial viajero, resolviendo dudas y objeciones y realizando el seguimiento necesario\n4\tGestionar y mantener el CRM y el pipeline comercial\n5\tMedir y mejorar la conversión y previsión del sistema comercial", "Gestiona el proceso comercial desde que existe una oportunidad hasta su conversión en reserva, asegurando un proceso de venta ordenado y eficaz.", "¿Estamos convirtiendo las oportunidades que generamos en viajeros?", "Asegurar que las oportunidades comerciales se gestionan y convierten en reservas de forma eficaz y trazable.", "Gestión de leads y oportunidades; proceso comercial; contacto y seguimiento; cualificación; resolución de dudas y objeciones; llamadas comerciales; cierre; seguimiento de oportunidades; gestión y mantenimiento del CRM y pipeline comercial; consolidación y seguimiento del embudo fuente → venta; previsión de ventas; coordinación con Marketing; gestión del equipo de ventas cuando exista.", "Generación de demanda; estrategia de posicionamiento y marca; comunicación general con la base de contactos; diseño de productos y destinos; definición de estándares de producto; ejecución de expediciones; gestión operativa de reservas y proveedores; contabilidad y cobros.", "Operativo/ejecutor", "", "La gestión de la comunicación, segmentación y automatizaciones con la base de contactos pertenece a Comunicación Comercial.", "", "", "Función principal Marketing y Ventas"], ["Transversal / Por clasificar", "Sistemas y Automatización de negocio", "1. Identificar oportunidades de mejora y automatización de procesos.\n2. Diseñar y estandarizar workflows y procesos de negocio.\n3. Implementar y mantener automatizaciones e integraciones.\n4. Reducir trabajo manual, errores y tareas de bajo valor.\n5. Medir el impacto y la eficiencia de las automatizaciones implantadas.", "Identifica, estandariza y automatiza procesos de negocio para reducir tareas manuales, errores y trabajo de bajo valor, comenzando por las necesidades operativas prioritarias.", "¿Estamos haciendo las operaciones de la forma más eficiente y automatizada posible?", "Reducir el trabajo operativo manual y de bajo valor mediante la mejora, estandarización y automatización de procesos.", "Identificación de tareas repetitivas; documentación y estandarización de procesos; diseño de workflows; automatizaciones entre herramientas; eliminación de tareas manuales; mantenimiento de automatizaciones; reducción de errores; medición del tiempo y trabajo ahorrado.", "", "Estrategico/analítico", "VACANTE / por definir", "Función transversal a toda la empresa, inicialmente priorizada en Operaciones por el volumen de trabajo manual existente.", "Horas de trabajo manual eliminadas mediante automatización", "Volumen de trabajo repetitivo eliminado o reducido mediante automatización."], ["Funcion por asignar", "Legal", "Responsabilidad de Administración y Finanzas por ser una responsabilidad corporativa transversal vinculada al cumplimiento y gestión de riesgos de la empresa. La ejecución puede estar externalizada, pero Finanzas mantiene el control y coordinación de las necesidades legales de la compañía.???", "Asegura que las decisiones y actividades de la empresa se realizan conforme al marco legal aplicable y gestiona las necesidades jurídicas de la empresa.", "¿Estamos identificando y gestionando adecuadamente las obligaciones y riesgos legales de la empresa?", "Asegurar que las necesidades legales de la empresa están identificadas, gestionadas y cubiertas adecuadamente.", "Contratos; revisión y negociación de acuerdos; protección de datos; términos y condiciones; propiedad intelectual; reclamaciones y conflictos; asesoramiento jurídico; coordinación con asesores legales externos.", "", "Especialista/Técnico"], ["Funcion por asignar", "Actualizar web oferta, precios, estado, plazas...", "Responsabilidad de Ventas y conversion?? Porque es el seat responsable de que la oferta comercial esté correctamente configurada para poder convertirse en reserva", "Asegura que la oferta de expediciones publicada en la web refleja correctamente la oferta real de Desafío Zero y se mantiene actualizada.", "¿La oferta de expediciones publicada en la web refleja correctamente lo que realmente queremos vender?", "Asegurar que la oferta comercial de expediciones publicada en la web está correctamente configurada, actualizada y alineada con la oferta aprobada.", "Alta y publicación de expediciones; configuración de productos; actualización de precios aprobados; actualización de plazas y disponibilidad; activación, desactivación o retirada de expediciones; actualización de información de la expedición; comprobación de que la configuración web coincide con la oferta aprobada.", "", "Operativo/ejecutor", "", "Ejecuta los cambios aprobados. La definición de producto, condiciones y precio corresponde a las funciones responsables de esas decisiones."], ["Funcion por asignar", "Pricing de producto", "Responsabilidad de  Direccion de marketing y ventas??? La decisión de pricing es principalmente comercial, ya que debe equilibrar posicionamiento, percepción de valor, demanda y conversión. Finanzas aporta el análisis de costes y rentabilidad, y Operaciones la información sobre costes y viabilidad del producto.", "Define y mantiene la política de precios de las expediciones, asegurando que los precios son coherentes con el posicionamiento, los costes, la demanda y los objetivos de rentabilidad de Desafío Zero.", "¿Estamos poniendo precios que permitan vender nuestras expediciones de forma rentable y coherente con nuestra propuesta de valor?", "Asegurar que los precios de las expediciones están definidos y actualizados de acuerdo con la estrategia, los costes, la demanda y los objetivos de rentabilidad de la empresa.", "Definición de criterios de pricing; cálculo y revisión de precios por expedición; análisis de costes y márgenes; revisión según demanda y ocupación; promociones y descuentos; revisión de precios cuando cambien costes o condiciones; coordinación con Marketing, Operaciones y Finanzas.", "", "Estrategico/analítico", "", "Para DZ sería que la decisión de pricing debería vivir en Marketing y Ventas o en Dirección, con Finanzas aportando el análisis económico y Operaciones el coste real del producto.\n\nNo pondría a Finanzas como dueño automático del precio: calcular si un precio es rentable no es lo mismo que decidir cuál debe ser el precio de mercado.\n\nY tampoco pondría a Operaciones como dueño: conoce el coste y el producto, pero no debería decidir por sí sola la estrategia comercial."], ["Transversal / Por clasificar", " IT ", "1. Gestionar usuarios, cuentas, permisos y accesos tecnológicos.\n2. Gestionar las herramientas, licencias y sistemas tecnológicos de la empresa.\n3. Asegurar la disponibilidad y correcto funcionamiento del entorno tecnológico.\n4. Gestionar incidencias y coordinar a los proveedores tecnológicos.\n5. Gestionar el ciclo de vida tecnológico de las personas y sistemas, incluyendo onboarding y offboarding.", "Gestiona el entorno tecnológico de Desafío Zero, asegurando que las personas, herramientas, sistemas e infraestructuras necesarias para trabajar están correctamente configurados, accesibles y gestionados, coordinando a los proveedores tecnológicos cuando corresponde.", "¿Tenemos nuestro entorno tecnológico correctamente gestionado, accesible y funcionando como necesitamos?", "Asegurar la correcta gestión y disponibilidad del entorno tecnológico de Desafío Zero, incluyendo usuarios, accesos, herramientas, sistemas e infraestructuras, y coordinando a los proveedores tecnológicos cuando corresponda.", "Altas y bajas de usuarios; gestión de cuentas, permisos y accesos; gestión de licencias; configuración y administración de herramientas SaaS; gestión de vistas, permisos y estructuras de herramientas como Airtable; gestión de accesos a bases de datos y sistemas; administración funcional de sistemas e infraestructuras gestionados por proveedores; coordinación y seguimiento de proveedores tecnológicos; gestión y seguimiento de incidencias IT; onboarding y offboarding tecnológico; gestión del entorno web y coordinación de su mantenimiento; supervisión de sistemas e infraestructura tecnológica externalizada", "", "Especialista/Técnico", "", "Parte de la infraestructura y el mantenimiento técnico pueden estar externalizados, pero la responsabilidad interna sobre usuarios, accesos, configuración, disponibilidad y coordinación de proveedores permanece en Desafío Zero."]]}, "guideSheet": {"name": "Descripción", "rows": [["GUÍA · ACCOUNTABILITY CHART"], ["¿Para qué sirve? El Accountability Chart define qué responsabilidades necesita tener cubiertas la empresa y quién es responsable de cada una. No es un organigrama de personas ni una lista de tareas."], ["1. QUÉ ES Y PARA QUÉ LO HACEMOS"], ["Qué queremos definir", "Las responsabilidades que DZ necesita tener cubiertas para funcionar bien durante los próximos 6–12 meses."], ["Por qué", "Para que quede claro quién responde de cada cosa, evitar duplicidades y detectar responsabilidades que hoy no tienen dueño."], ["Qué NO es", "No es un listado de todo lo que hace cada persona, ni un organigrama definitivo, ni una lista de tareas del día a día."], ["Primera iteración", "Primero definimos los asientos y sus responsabilidades. Después, con el equipo directivo, asignamos las personas que ocuparán cada asiento."], ["2. CONCEPTOS CLAVE"], ["Concepto", "Qué significa", "Ejemplo en DZ"], ["Big Function / Función principal", "Una gran área de responsabilidad de la empresa. Agrupa varios asientos relacionados.", "Operaciones · Marketing y Ventas · Administración y Finanzas"], ["Asiento (Seat)", "Una responsabilidad que la empresa necesita que alguien tenga bajo control. Es la 'cajita' del Accountability Chart.", "Generación de Demanda"], ["Owner / Responsable", "La persona que responde de que ese asiento funcione y se cumplan sus responsabilidades. Su nombre significa: «si esto falla, me aseguro de que se solucione».", "Generación de Demanda → María"], ["Responsabilidad", "Lo que esa persona debe conseguir o asegurar dentro del asiento. Son responsabilidades grandes, no tareas.", "Generar demanda suficiente y cualificada"], ["Tarea", "Una acción concreta que se hace para cumplir una responsabilidad. Las tareas no son asientos.", "Crear una campaña de Meta"], ["Persona", "Quién ocupa un asiento. Una persona puede ocupar más de un asiento si la empresa lo necesita.", "Oliver → Dirección de Operaciones + Producto y Destinos"], ["Importante: una persona puede ocupar varios asientos, un asiento puede estar vacío y varias personas pueden ejecutar tareas dentro de un mismo asiento. Lo importante es que haya una única persona accountable de cada asiento."], ["3. ¿QUÉ SIGNIFICA QUE TU NOMBRE ESTÉ EN UNA CASILLA?"], ["Tu nombre en un asiento significa que eres la persona que responde de que esa parte de la empresa funcione. No significa que hagas todas las tareas ni que seas necesariamente el jefe de todas las personas que trabajan en ella."], ["Ejemplo", "Oliver puede ser owner de Dirección de Operaciones y Carola owner de Experiencia del Viajero. Oliver responde del funcionamiento global de Operaciones; Carola responde específicamente de que la experiencia/atención al viajero funcione."], ["Por eso, que alguien sea Director/a de una Big Function NO significa automáticamente que sea owner de todos los asientos que hay dentro. Cada asiento tiene su propia accountability."], ["4. CÓMO CONSTRUIR EL CHART"], ["1", "Definir las Big Functions", "Qué grandes áreas necesita la empresa."], ["2", "Definir los asientos", "Qué responsabilidades distintas necesitamos cubrir dentro de cada área."], ["3", "Definir las 5 responsabilidades principales", "Qué debe conseguir/asegurar cada asiento. No tareas."], ["4", "Revisar límites", "Qué pertenece a este asiento y qué pertenece a otro, evitando duplicidades y huecos."], ["5", "Asignar owners", "Quién debe responder de cada asiento. En esta primera iteración puede quedar vacío."], ["6", "Revisar como equipo", "Validar que la estructura representa lo que DZ necesita, no simplemente cómo trabajamos hoy."], ["5. PREGUNTAS PARA REVISAR CADA ASIENTO"], ["□ ¿Esta responsabilidad necesita estar cubierta en los próximos 6–12 meses?"], ["□ ¿Las 5 responsabilidades describen resultados/responsabilidades importantes y no tareas?"], ["□ ¿Está claro qué entra y qué no entra en este asiento?"], ["□ ¿Hay otra casilla que tenga la misma responsabilidad? → evitar duplicidades."], ["□ ¿Hay algo importante que nadie tiene bajo control? → detectar huecos."], ["□ ¿Si algo falla, sabemos exactamente quién debe hacerse cargo? → una sola persona accountable."], ["6. CADENAS DE RESPONSABILIDADES"], ["Los asientos no son piezas aisladas. Dentro de cada área deben formar una cadena lógica: una responsabilidad alimenta a la siguiente. Esto ayuda a ver duplicidades, huecos y límites entre asientos."], ["Marketing y Ventas", "Marca → Demanda → Relación → Venta"], ["Operaciones", "Producto y Destinos → Preparación del Viajero → Logística y Proveedores → Expedición → Experiencia del Viajero → Aprendizaje y mejora"], ["Administración y Finanzas", "Cobros y Pagos → Contabilidad → Control Financiero y Tesorería → Dirección Financiera → Financiación"], ["Ciclo de gestión de DZ", "Visión → Integración → Áreas → Ejecución → Resultados → Aprendizaje → Nueva planificación"], ["Nota: las cadenas son una forma sencilla de comprobar que las responsabilidades están conectadas. No todo tiene que ser una cadena lineal; algunas funciones son transversales o dan soporte a varias partes del negocio."], ["7. TIPO DE FUNCIÓN"], ["Tipo", "Qué significa", "Ejemplo"], ["🟢 Operativo / ejecutor", "El foco está en hacer que las cosas ocurran en el día a día, siguiendo procesos, gestionando operaciones y asegurando la ejecución.", "Contabilidad, gestión de cobros y pagos, operaciones logísticas"], ["🔵 Estratégico / analítico", "El foco está en analizar, anticipar, decidir, planificar y orientar el negocio a medio/largo plazo.", "Control financiero, estrategia de marketing, planificación de capacidad"], ["🟣 Especialista / técnico", "Requiere conocimiento técnico específico para garantizar que una materia concreta se gestiona correctamente. Puede estar internalizado o externalizado.", "Fiscalidad, legal, ciberseguridad"], ["El Tipo no clasifica a la persona, su categoría profesional ni su formación académica. Clasifica la naturaleza de la función."], ["8. EJEMPLO RÁPIDO: SEAT vs. TAREA"], ["Nivel", "Ejemplo"], ["Seat", "Generación de Demanda"], ["Responsabilidad", "Generar demanda suficiente y cualificada"], ["Canales", "Publicidad · Redes · Newsletter · SEO"], ["Tarea", "Crear una campaña de Meta / preparar un newsletter / publicar en Instagram"], ["Owner", "La persona que responde de que Generación de Demanda funcione, aunque otras personas ejecuten las tareas."], ["REGLA SIMPLE PARA TODO EL DOCUMENTO"], ["Primero preguntamos: «¿Qué necesita DZ que alguien tenga bajo control?» → eso define el asiento. Después: «¿Qué tiene que conseguir/asegurar?» → esas son sus responsabilidades. Finalmente: «¿Quién debe responder de ello?» → ese es el owner."]]}}</script>
+<script>
+(() => {
+'use strict';
+/* ============================================================
+   Utilidades
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fold = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const norm = s => fold(s).replace(/[¿?¡!]/g, '').replace(/\s+/g, ' ').trim();
+const LS = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); return true; } catch(e){ return false; } },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const KEY_ASSIGN = 'acdz.assignments.v1';
+const KEY_RAW = 'acdz.loadedExcel.v1';
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){ const cur=[i]; for(let j=1;j<=n;j++){ cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); } prev=cur; }
+  return prev[n];
+}
+
+/* ============================================================
+   Configuración de lectura (independiente del contenido)
+   ============================================================ */
+const HEADER_ALIASES = {
+  area:['funcion principal','area','big function'],
+  seat:['asiento','seat'],
+  resp:['5 funciones principales','5 responsabilidades','responsabilidades','funciones principales'],
+  description:['descripcion'],
+  question:['pregunta','pregunta de accountability'],
+  accountability:['accountability'],
+  includes:['que incluye'],
+  excludes:['que no incluye'],
+  type:['tipo'],
+  person:['responsable','persona','owner'],
+  comments:['comentarios'],
+  metric:['metrica propuesta','metrica'],
+  measures:['que mide'],
+  parent:['reporta a']
+};
+const DETAIL_FIELDS = [
+  ['accountability','Accountability'],['description','Descripción'],['question','Pregunta de accountability'],
+  ['includes','Qué incluye'],['excludes','Qué NO incluye'],['type','Tipo'],['comments','Comentarios'],
+  ['metric','Métrica propuesta'],['measures','Qué mide']
+];
+const PENDING_RX = /por clasificar|por asignar|pendiente|\btbd\b|sin definir/i;
+const VACANT_RX  = /vacante|por definir|\btbd\b|pendiente|sin asignar/i;
+const MULTI_RX   = /\s(y|e)\s|,|\+|&|\/|;/i;
+const LEAD_RX    = /^(visionari|visionary|integrad|integrator)/i;
+const HEAD_RX    = /^funci[oó]n principal/i;
+/* Observaciones detectadas al revisar este Excel. Solo se muestran si la condición sigue dándose en los datos. */
+const MANUAL_NOTES = [
+  { seat:'contabilidad & administracion',
+    when: s => /n[oó]mina/i.test(s.includes) && /gesti[oó]n laboral/i.test(s.excludes),
+    text:'«Qué incluye» enumera contenidos de gestión laboral (altas y bajas, contratos laborales, nóminas, vacaciones, asesoría laboral…), mientras que su propio «Qué NO incluye» remite «Gestión laboral → Gestión Laboral». Posible texto copiado de otro asiento: revisar.' }
+];
+const AREA_COLORS = ['--a1','--a2','--a3','--a4','--a6'];
+
+/* ============================================================
+   Modelo: se construye SIEMPRE a partir de las filas del Excel
+   ============================================================ */
+function parseResp(raw){
+  const lines = String(raw ?? '').split(/\r?\n/).filter(l => l.trim() !== '');
+  return lines.map(l => {
+    const m = l.match(/^\s*(\d{1,2})\s*[.)]?\s+(\S[\s\S]*)$/);
+    return m ? { num:+m[1], text:m[2].trim() } : { num:null, text:l.trim() };
+  });
+}
+
+function buildModel(raw){
+  const rows = (raw && raw.seatsSheet && raw.seatsSheet.rows) || [];
+  const hdr = rows[0] || [];
+  const idx = {};
+  hdr.forEach((h,i) => { const n = norm(h); for (const [k,al] of Object.entries(HEADER_ALIASES)) if (idx[k] == null && al.includes(n)) idx[k] = i; });
+  const missingCols = ['seat','resp','person','parent','area'].filter(k => idx[k] == null);
+
+  const seats = [];
+  rows.slice(1).forEach((r,i) => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const g = k => idx[k] == null ? '' : String(r[idx[k]] ?? '');
+    const s = { row:i+2, area:g('area').trim(), seat:g('seat').trim(), respRaw:g('resp'),
+                excelPerson:g('person').trim(), parentRaw:g('parent').trim(), issues:[] };
+    DETAIL_FIELDS.forEach(([k]) => s[k] = g(k).trim());
+    seats.push(s);
+  });
+
+  const used = {};
+  seats.forEach(s => {
+    const b = norm(s.seat || ('fila ' + s.row)).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'seat';
+    let id = b, n = 2; while (used[id]) id = b + '-' + (n++); used[id] = 1; s.id = id;
+    s.isLead = LEAD_RX.test(s.seat); s.isHead = HEAD_RX.test(s.seat);
+  });
+  const byId = Object.fromEntries(seats.map(s => [s.id, s]));
+
+  // 1. nombre
+  seats.forEach(s => { if (!s.seat) s.issues.push({level:'warn',kind:'seat',text:`⚠ Revisar: el asiento de la fila ${s.row} no tiene nombre en el Excel.`}); });
+  // 7. duplicados
+  const byName = {};
+  seats.forEach(s => { if (s.seat) (byName[norm(s.seat)] ??= []).push(s); });
+  Object.values(byName).forEach(l => { if (l.length > 1) l.forEach(s => s.issues.push({level:'warn',kind:'dup',text:`⚠ Revisar: asiento duplicado (aparece en las filas ${l.map(x=>x.row).join(', ')}).`})); });
+  // 25. por clasificar
+  seats.forEach(s => {
+    s.pending = PENDING_RX.test(s.area) || PENDING_RX.test(s.seat);
+    if (s.pending) s.issues.push({level:'pending',kind:'pending',text:`⚠ Pendiente de clasificación: el Excel lo ubica en «${s.area || '—'}».`});
+  });
+  // 3. cinco responsabilidades
+  seats.forEach(s => {
+    const items = parseResp(s.respRaw); s.resp = items; s.respOk = items.length === 5;
+    if (!s.respOk) {
+      const what = items.length === 0 ? 'está vacía' : items.length === 1 ? 'contiene un único texto' : `contiene ${items.length} líneas`;
+      s.issues.push({level:'warn',kind:'resp',text:`⚠ Revisar responsabilidades: se esperan 5 y la columna «5 funciones principales» ${what}.`});
+    } else {
+      const miss = items.map((x,i) => x.num == null ? i+1 : null).filter(Boolean);
+      if (miss.length) s.issues.push({level:'info',kind:'resp',text:`La responsabilidad ${miss.join(', ')} no lleva número en el Excel; se muestra en su posición.`});
+      if (!items.every((x,i) => x.num == null || x.num === i+1)) s.issues.push({level:'warn',kind:'resp',text:'⚠ Revisar responsabilidades: la numeración del Excel no es correlativa.'});
+    }
+  });
+  // responsabilidades repetidas entre asientos
+  const rmap = {};
+  seats.forEach(s => s.respOk && s.resp.forEach((x,i) => (rmap[norm(x.text)] ??= []).push([s,i])));
+  Object.values(rmap).forEach(l => { if (l.length > 1) l.forEach(([s,i]) => s.issues.push({level:'warn',kind:'dup',text:`⚠ Revisar: la responsabilidad ${i+1} está repetida en ${l.filter(([o])=>o!==s).map(([o])=>'«'+o.seat+'»').join(', ')}.`})); });
+  // 6. relaciones jerárquicas
+  const byNorm = {}; seats.forEach(s => { if (s.seat && !byNorm[norm(s.seat)]) byNorm[norm(s.seat)] = s; });
+  seats.forEach(s => {
+    s.parentId = null;
+    if (!s.parentRaw) return;
+    const n = norm(s.parentRaw), p = byNorm[n];
+    if (p && p !== s) { s.parentId = p.id; return; }
+    let best = null, bd = 99;
+    seats.forEach(o => { if (o === s || !o.seat) return; const d = lev(n, norm(o.seat)); if (d < bd) { bd = d; best = o; } });
+    if (best && bd <= 2) {
+      s.parentId = best.id;
+      s.issues.push({level:'warn',kind:'parent',text:`⚠ Revisar relación: «Reporta a» dice «${s.parentRaw}», que no coincide exactamente con ningún asiento. Se muestra vinculado a «${best.seat}» por similitud del nombre; confirmar.`});
+    } else {
+      s.issues.push({level:'warn',kind:'parent',text:`⚠ Revisar relación: «Reporta a» dice «${s.parentRaw}», que no corresponde a ningún asiento. Relación por definir.`});
+    }
+  });
+  seats.forEach(s => {
+    const seen = new Set([s.id]); let p = s.parentId;
+    while (p) { if (seen.has(p)) { s.issues.push({level:'warn',kind:'parent',text:'⚠ Revisar relación: se ha detectado una relación circular. Relación por definir.'}); s.parentId = null; break; } seen.add(p); p = byId[p] && byId[p].parentId; }
+  });
+  const children = {};
+  seats.forEach(s => { if (s.parentId) (children[s.parentId] ??= []).push(s); });
+  const orphans = seats.filter(s => !s.parentId);
+  const roots = orphans.filter(s => !s.pending);
+  const pendingZone = orphans.filter(s => s.pending);
+  roots.forEach(s => {
+    if (s.parentRaw) return; // ya avisado arriba
+    if (!(s.isLead || roots.length === 1)) s.issues.push({level:'warn',kind:'parent',text:'Relación por definir: el Excel no indica a qué asiento reporta.'});
+  });
+  pendingZone.forEach(s => { if (!s.parentRaw) s.issues.push({level:'info',kind:'parent',text:'Relación por definir: el Excel no indica a qué asiento reporta.'}); });
+  // 2 / 11. personas del Excel
+  seats.forEach(s => {
+    const v = s.excelPerson;
+    if (!v) s.excelStatus = 'empty';
+    else if (VACANT_RX.test(v)) { s.excelStatus = 'vacant'; s.issues.push({level:'info',kind:'person',text:`El Excel indica «${v}» en Responsable: se muestra como sin asignar.`}); }
+    else if (MULTI_RX.test(v.replace(/\(.*?\)/g,''))) { s.excelStatus = 'multi'; s.issues.push({level:'warn',kind:'person',text:`⚠ Revisar asignación: «${v}» parece contener más de una persona. Cada seat debe tener un único accountable.`}); }
+    else { s.excelStatus = 'assigned'; const a = v.match(/\((.*?)\)/); if (a) s.issues.push({level:'info',kind:'person',text:`El Excel acompaña el nombre de la anotación «${a[1]}».`}); }
+  });
+  // observaciones de revisión
+  seats.forEach(s => MANUAL_NOTES.forEach(m => { if (norm(s.seat) === m.seat && m.when(s)) s.issues.push({level:'warn',kind:'note',text:'⚠ Revisar contenido: ' + m.text, src:'Observación detectada al revisar el Excel (no forma parte del Excel).'}); }));
+  // referencias de «Qué NO incluye» a asientos inexistentes
+  const refs = [];
+  seats.forEach(s => String(s.excludes).split(/\n|;/).forEach(line => {
+    const i = line.indexOf('→'); if (i < 0) return;
+    line.slice(i+1).split(/\s\/\s|\s\+\s/).forEach(t => {
+      t = t.replace(/[.\s]+$/,'').trim(); if (!t || /^[a-záéíóúñ]/.test(t)) return;
+      const nt = norm(t);
+      const ok = seats.some(o => { const on = norm(o.seat); return on && (nt === on || nt.startsWith(on + ',') || nt.startsWith(on + ' ')); });
+      if (!ok) refs.push({ from:s, target:t });
+    });
+  }));
+  // áreas
+  const areas = []; seats.forEach(s => { if (s.area && !areas.includes(s.area)) areas.push(s.area); });
+  const areaColor = {}; let ci = 0;
+  areas.forEach(a => { areaColor[a] = PENDING_RX.test(a) ? '--a5' : AREA_COLORS[(ci++) % AREA_COLORS.length]; });
+  const vm = String(raw.fileName || '').match(/v\s*(\d+(?:[._]\d+)?)/i);
+  return { raw, seats, byId, children, roots, pendingZone, refs, areas, areaColor, missingCols, version: vm ? 'V' + vm[1] : null };
+}
+
+/* ============================================================
+   Estado
+   ============================================================ */
+const EMBEDDED = JSON.parse(document.getElementById('excel-data').textContent);
+let RAW = EMBEDDED, usingLoaded = false;
+{ const r = LS.get(KEY_RAW); if (r) { try { RAW = JSON.parse(r); usingLoaded = true; } catch(e){} } }
+let M = buildModel(RAW);
+const expanded = new Set(), collapsed = new Set();
+let overrides = {};           // id de seat -> { person: string|null }  (solo cambios hechos en la interfaz)
+let dirty = false;
+{ const r = LS.get(KEY_ASSIGN); if (r) { try { overrides = JSON.parse(r).assignments || {}; } catch(e){} } }
+const F = { area:'', person:'', unassigned:false, warn:false };
+let Q = '', hits = [], hitPos = -1;
+
+const personBase = n => String(n || '').replace(/\(.*?\)/g,'').replace(/\s+/g,' ').trim();
+const personKey = n => norm(personBase(n));
+function eff(s){
+  if (Object.prototype.hasOwnProperty.call(overrides, s.id)) {
+    const p = overrides[s.id].person;
+    return p ? { status:'assigned', name:p, source:'edit' } : { status:'empty', name:null, source:'edit' };
+  }
+  if (s.excelStatus === 'assigned') return { status:'assigned', name:s.excelPerson, source:'excel' };
+  if (s.excelStatus === 'multi') return { status:'multi', name:s.excelPerson, source:'excel' };
+  return { status:'empty', name:null, source:'excel', excelLabel: s.excelStatus === 'vacant' ? s.excelPerson : null };
+}
+function otherSeatsOf(s){
+  const p = eff(s); if (p.status !== 'assigned') return [];
+  const k = personKey(p.name);
+  return M.seats.filter(o => o !== s && eff(o).status === 'assigned' && personKey(eff(o).name) === k);
+}
+function issuesOf(s){
+  const out = s.issues.slice();
+  const others = otherSeatsOf(s);
+  if (others.length) out.push({level:'multi',kind:'multi',text:`Esta persona ocupa también: ${others.map(o=>'«'+o.seat+'»').join(', ')}. Una persona puede ocupar varios seats; cada seat mantiene su propia accountability.`});
+  if (s.excelStatus === 'multi' && Object.prototype.hasOwnProperty.call(overrides, s.id)) {
+    const i = out.findIndex(x => x.kind === 'person' && x.level === 'warn'); if (i >= 0) out[i] = {...out[i], level:'info', text: out[i].text + ' (Asignación modificada desde la interfaz.)'};
+  }
+  return out;
+}
+const hasWarn = s => issuesOf(s).some(i => i.level === 'warn' || i.level === 'pending');
+const areaKey = s => s.area || '(sin)';
+function passes(s){
+  if (F.area && areaKey(s) !== F.area) return false;
+  if (F.person) { const p = eff(s); if (p.status !== 'assigned' || personKey(p.name) !== F.person) return false; }
+  if (F.unassigned && eff(s).status !== 'empty') return false;
+  if (F.warn && !hasWarn(s)) return false;
+  return true;
+}
+const filtersActive = () => !!(F.area || F.person || F.unassigned || F.warn);
+
+/* ============================================================
+   Búsqueda (insensible a tildes y mayúsculas)
+   ============================================================ */
+function hl(text){
+  text = String(text ?? '');
+  const q = fold(Q).trim(); if (q.length < 2) return esc(text);
+  const chars = Array.from(text); let f = '', map = [];
+  chars.forEach((c,i) => { const fc = fold(c); for (const x of fc) { f += x; map.push(i); } });
+  let out = '', last = 0, from = 0, pos;
+  while ((pos = f.indexOf(q, from)) >= 0) {
+    const a = map[pos], b = map[pos + q.length - 1] + 1;
+    if (a < last) { from = pos + 1; continue; }
+    out += esc(chars.slice(last, a).join('')) + '<mark>' + esc(chars.slice(a, b).join('')) + '</mark>';
+    last = b; from = pos + q.length;
+  }
+  return out + esc(chars.slice(last).join(''));
+}
+function computeHits(){
+  hits = []; const q = fold(Q).trim();
+  if (q.length < 2) { hitPos = -1; return; }
+  const has = t => fold(t).includes(q);
+  M.seats.forEach(s => {
+    const p = eff(s);
+    const rIdx = s.resp.map((x,i) => has(x.text) ? i : -1).filter(i => i >= 0);
+    const inRaw = !s.respOk && has(s.respRaw);
+    if (has(s.seat) || has(s.area) || (p.name && has(p.name)) || rIdx.length || inRaw) {
+      hits.push({ id:s.id, resp:rIdx });
+      if (rIdx.length || inRaw) expanded.add(s.id);
+      let par = s.parentId; while (par) { collapsed.delete(par); par = M.byId[par].parentId; }
+    }
+  });
+  hitPos = hits.length ? 0 : -1;
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+const stage = $('#stage'), viewport = $('#viewport');
+function personHTML(s, tog){
+  const p = eff(s);
+  if (p.status === 'assigned') {
+    const others = otherSeatsOf(s);
+    return `<div class="person">
+      <span class="avatar" aria-hidden="true">${esc(personBase(p.name).charAt(0).toUpperCase())}</span>
+      <span class="pname">${hl(p.name)}</span>
+      ${p.source === 'edit' ? '<span class="chip soft" title="Asignación hecha desde la interfaz">editado</span>' : ''}
+      ${others.length ? `<button class="chip soft" data-act="detail" title="También en: ${esc(others.map(o=>o.seat).join(' · '))}">+${others.length} seat${others.length>1?'s':''}</button>` : ''}
+      <span class="pr"><button class="ibtn edit" data-act="assign" title="Cambiar o quitar persona" aria-label="Cambiar persona">✎</button>${tog}</span>
+    </div>`;
+  }
+  if (p.status === 'multi') {
+    return `<div class="person">
+      <span class="p-warn">⚠ Revisar asignación</span>
+      <span class="pr"><button class="ibtn edit" data-act="assign">Resolver</button>${tog}</span>
+    </div><div class="xl">Excel: «${hl(p.name)}»</div>`;
+  }
+  return `<div class="person">
+    <span class="avatar empty" aria-hidden="true"></span>
+    <span class="p-empty">Sin asignar</span>
+    <span class="pr"><button class="ibtn assign" data-act="assign">Asignar persona</button>${tog}</span>
+  </div>${p.excelLabel ? `<div class="xl">Excel: «${esc(p.excelLabel)}»</div>` : ''}`;
+}
+function cardHTML(s){
+  const iss = issuesOf(s);
+  const nWarn = iss.filter(i => i.level === 'warn').length;
+  const open = expanded.has(s.id);
+  const kids = M.children[s.id] || [];
+  const hit = hits.find(h => h.id === s.id);
+  const cur = hit && hits[hitPos] === hit;
+  const dim = (filtersActive() && !passes(s)) || (hits.length && !hit) || (fold(Q).trim().length >= 2 && !hits.length);
+  const color = s.area ? `var(${M.areaColor[s.area]})` : 'var(--lead-bg)';
+  const areaLabel = s.area ? hl(s.area) : (s.isLead ? 'Liderazgo · EOS' : '<span title="El Excel no indica función principal">Sin función principal</span>');
+  const cls = ['card', s.isLead && !s.area ? 'lead' : '', s.isHead ? 'head' : '', s.pending ? 'pending' : '', dim ? 'dim' : '', hit ? 'hit' : '', cur ? 'cur' : ''].filter(Boolean).join(' ');
+  let respHTML = '';
+  if (open) {
+    if (s.respOk) {
+      respHTML = `<ol class="resp-list">${s.resp.map((x,i) => `<li class="${hit && hit.resp.includes(i) ? 'hitline' : ''}">${hl(x.text)}</li>`).join('')}</ol>`;
+    } else {
+      respHTML = `<div class="resp-bad">⚠ Revisar responsabilidades — se esperan 5. Contenido original de la columna «5 funciones principales»:</div>
+        <div class="raw">${s.respRaw.trim() ? hl(s.respRaw.trim()) : '<em>(vacío)</em>'}</div>`;
+    }
+    if (s.accountability) respHTML += `<div class="acc"><span class="lbl">Accountability</span>${esc(s.accountability)}</div>`;
+    respHTML = `<div class="resp" id="r-${s.id}">${respHTML}<button class="link" data-act="detail">Ver detalle</button></div>`;
+  }
+  return `<article class="${cls}" data-id="${s.id}" style="--ac:${color}">
+    <div class="card-top">
+      <span class="area">${areaLabel}</span>
+      ${s.pending ? '<button class="chip pend" data-act="detail" title="Ver información original">⚠ Pendiente de clasificación</button>' : ''}
+      ${nWarn ? `<button class="chip warn" data-act="detail" title="Ver avisos">⚠ Revisar${nWarn>1?' ('+nWarn+')':''}</button>` : ''}
+    </div>
+    <h3 class="seat">${hl(s.seat || '(sin nombre)')}</h3>
+    ${personHTML(s, `<button class="toggle" data-act="toggle" aria-expanded="${open}" aria-controls="r-${s.id}" title="${open ? 'Ocultar' : 'Mostrar'} ${s.respOk ? 'las 5 responsabilidades' : 'el contenido'}" aria-label="${open ? 'Ocultar' : 'Mostrar'} responsabilidades">${open ? '▼' : '▶'}</button>`)}
+    ${kids.length ? `<div class="card-foot"><button class="kids-toggle" data-act="kids" aria-expanded="${!collapsed.has(s.id)}" title="${collapsed.has(s.id)?'Mostrar':'Ocultar'} los asientos que dependen de este">${collapsed.has(s.id)?'▸':'▾'} ${kids.length} asiento${kids.length>1?'s':''} dependiente${kids.length>1?'s':''}</button></div>` : ''}
+    ${respHTML}
+  </article>`;
+}
+function nodeHTML(s, depth, layout){
+  const kids = M.children[s.id] || [];
+  const childLayout = depth <= 1 ? 'h' : 'v';
+  const isCol = layout === 'h' && childLayout === 'v';
+  let h = `<div class="node ${layout === 'h' ? 'hnode' : 'vnode'}${isCol ? ' col' : ''}">` + cardHTML(s);
+  if (kids.length && !collapsed.has(s.id)) {
+    h += childLayout === 'h'
+      ? `<div class="hkids">${kids.map(k => `<div class="hkid">${nodeHTML(k, depth+1, 'h')}</div>`).join('')}</div>`
+      : `<div class="vkids">${kids.map(k => `<div class="vkid">${nodeHTML(k, depth+1, 'v')}</div>`).join('')}</div>`;
+  }
+  return h + '</div>';
+}
+function render(){
+  let h = '';
+  if (M.roots.length === 1) h += `<div class="tree">${nodeHTML(M.roots[0], 0, 'h')}</div>`;
+  else if (M.roots.length) h += `<div class="tree roots">${M.roots.map(r => nodeHTML(r, 0, 'h')).join('')}</div>`;
+  if (M.pendingZone.length) {
+    h += `<section class="pending-zone" aria-label="Pendiente de clasificación">
+      <h2>⚠ Pendiente de clasificación</h2>
+      <p>Elementos del Excel sin relación jerárquica definida. No se han ubicado en la estructura.</p>
+      <div class="pz-list">${M.pendingZone.map(s => nodeHTML(s, 3, 'v')).join('')}</div>
+    </section>`;
+  }
+  if (!M.seats.length) h = `<div style="padding:40px;max-width:520px">No se han encontrado asientos en el Excel. Comprueba que existe una hoja con las columnas «Asiento» y «5 funciones principales».</div>`;
+  stage.innerHTML = h;
+  renderStats(); renderFilters(); renderSearchCount(); renderSaveState();
+}
+function renderStats(){
+  const n = M.seats.length, pend = M.seats.filter(s => s.pending).length;
+  const st = M.seats.map(eff);
+  const asg = st.filter(p => p.status === 'assigned').length, emp = st.filter(p => p.status === 'empty').length, mul = st.filter(p => p.status === 'multi').length;
+  const rev = M.seats.filter(s => issuesOf(s).some(i => i.level === 'warn')).length;
+  $('#stats').innerHTML = `<b>${n}</b> asientos (${n-pend} en estructura · ${pend} pendientes de clasificación) · <b>${asg}</b> asignados · <b>${emp}</b> sin asignar${mul ? ` · <b>${mul}</b> con asignación a revisar` : ''} · <b>${rev}</b> con avisos`;
+  $('#openReview').textContent = `Revisión (${rev + pend})`;
+  const v = $('#version');
+  v.innerHTML = (M.version ? `Versión ${esc(M.version)} · ` : '') + esc(M.raw.fileName || '') +
+    (usingLoaded ? ` · <span>cargado desde el navegador</span> · <button id="useEmbedded">volver a la versión incrustada</button>` : '');
+  const ue = $('#useEmbedded'); if (ue) ue.onclick = () => { LS.del(KEY_RAW); RAW = EMBEDDED; usingLoaded = false; M = buildModel(RAW); expanded.clear(); collapsed.clear(); render(); fit(); toast('Se usa de nuevo el Excel incrustado en el archivo.'); };
+}
+function renderFilters(){
+  const fa = $('#fArea'), fp = $('#fPerson');
+  const areas = [...M.areas]; if (M.seats.some(s => !s.area)) areas.unshift('(sin)');
+  fa.innerHTML = `<option value="">Todas las áreas</option>` + areas.map(a => `<option value="${esc(a)}"${F.area===a?' selected':''}>${a==='(sin)'?'Sin función principal (liderazgo)':esc(a)}</option>`).join('');
+  const people = knownPeople();
+  if (F.person && !people.some(p => personKey(p) === F.person)) F.person = '';
+  fp.innerHTML = `<option value="">Todas las personas</option>` + people.map(p => `<option value="${esc(personKey(p))}"${F.person===personKey(p)?' selected':''}>${esc(p)}</option>`).join('');
+  $('#fUnassigned').checked = F.unassigned; $('#fWarn').checked = F.warn;
+  $('#fClear').hidden = !filtersActive();
+}
+function knownPeople(){
+  const seen = new Map();
+  M.seats.forEach(s => { const p = eff(s); if (p.status === 'assigned') { const k = personKey(p.name); if (!seen.has(k)) seen.set(k, personBase(p.name)); } });
+  M.seats.forEach(s => { if (s.excelStatus === 'assigned') { const k = personKey(s.excelPerson); if (!seen.has(k)) seen.set(k, personBase(s.excelPerson)); } });
+  return [...seen.values()].sort((a,b) => a.localeCompare(b,'es'));
+}
+function renderSearchCount(){
+  const q = fold(Q).trim();
+  $('#qc').textContent = q.length < 2 ? '' : hits.length ? `${hitPos+1}/${hits.length}` : '0';
+}
+function renderSaveState(){ $('#save').innerHTML = 'Guardar asignaciones' + (dirty ? '<span class="dot" title="Cambios sin guardar"></span>' : ''); }
+
+/* ============================================================
+   Pan & zoom
+   ============================================================ */
+const view = { x:0, y:0, s:1 };
+function applyView(anim){
+  stage.classList.toggle('anim', !!anim);
+  stage.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.s})`;
+  $('#zl').textContent = Math.round(view.s * 100) + '%';
+}
+function zoomAt(cx, cy, f, anim){
+  const s2 = Math.min(2, Math.max(0.2, view.s * f)); const k = s2 / view.s;
+  view.x = cx - (cx - view.x) * k; view.y = cy - (cy - view.y) * k; view.s = s2; applyView(anim);
+}
+function fit(anim){
+  const vw = viewport.clientWidth, vh = viewport.clientHeight, w = stage.offsetWidth, h = stage.offsetHeight;
+  const s = Math.max(0.55, Math.min(1, vw / w, vh / h));
+  view.s = s; view.x = Math.max(0, (vw - w * s) / 2); view.y = 0;
+  if (w * s > vw) { // en pantallas estrechas, centrar el primer asiento de la estructura
+    const c = stage.querySelector('.tree .card');
+    if (c) { let x = 0, el = c; while (el && el !== stage) { x += el.offsetLeft; el = el.offsetParent; } view.x = vw / 2 - (x + c.offsetWidth / 2) * s; }
+  }
+  applyView(anim);
+}
+function focusSeat(id, anim = true){
+  const el = stage.querySelector(`.card[data-id="${CSS.escape(id)}"]`); if (!el) return;
+  const r = el.getBoundingClientRect(), sr = stage.getBoundingClientRect(), vr = viewport.getBoundingClientRect();
+  const ux = (r.left - sr.left) / view.s, uy = (r.top - sr.top) / view.s, uw = r.width / view.s;
+  const drawerW = $('#drawer').classList.contains('open') ? Math.min(460, vr.width) : 0;
+  const availW = Math.max(200, vr.width - drawerW);
+  if (view.s < 0.7) view.s = 0.85;
+  view.x = availW / 2 - (ux + uw / 2) * view.s;
+  view.y = Math.min(vr.height * 0.25, 80) - uy * view.s;
+  applyView(anim);
+}
+{
+  const pts = new Map(); let start = null, moved = false, pinch = null;
+  viewport.addEventListener('pointerdown', e => {
+    if (e.target.closest('button,input,select,a,.zoom,.legend')) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if (pts.size === 1) { start = { x:e.clientX, y:e.clientY, vx:view.x, vy:view.y }; moved = false; }
+    if (pts.size === 2) { const [a,b] = [...pts.values()]; pinch = { d:Math.hypot(a.x-b.x, a.y-b.y), s:view.s }; }
+    viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if (pts.size === 2 && pinch) {
+      const [a,b] = [...pts.values()], d = Math.hypot(a.x-b.x, a.y-b.y), vr = viewport.getBoundingClientRect();
+      zoomAt((a.x+b.x)/2 - vr.left, (a.y+b.y)/2 - vr.top, (pinch.s * d / pinch.d) / view.s); moved = true; return;
+    }
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if (!moved && Math.hypot(dx, dy) < 4) return;
+    moved = true; viewport.classList.add('dragging');
+    view.x = start.vx + dx; view.y = start.vy + dy; applyView(false);
+  });
+  const end = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (!pts.size) { start = null; viewport.classList.remove('dragging'); } };
+  viewport.addEventListener('pointerup', end); viewport.addEventListener('pointercancel', end);
+  viewport.addEventListener('click', e => { if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; } }, true);
+  viewport.addEventListener('wheel', e => {
+    e.preventDefault();
+    const vr = viewport.getBoundingClientRect();
+    if (e.ctrlKey || e.metaKey) zoomAt(e.clientX - vr.left, e.clientY - vr.top, Math.exp(-e.deltaY * 0.0022));
+    else { view.x -= e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX; view.y -= e.shiftKey && !e.deltaX ? 0 : e.deltaY; applyView(false); }
+  }, { passive:false });
+  $('#zin').onclick = () => zoomAt(viewport.clientWidth/2, viewport.clientHeight/2, 1.2, true);
+  $('#zout').onclick = () => zoomAt(viewport.clientWidth/2, viewport.clientHeight/2, 1/1.2, true);
+  $('#zfit').onclick = () => fit(true);
+}
+
+/* ============================================================
+   Interacción con tarjetas
+   ============================================================ */
+stage.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const card = b.closest('.card'); if (!card) return;
+  const id = card.dataset.id, act = b.dataset.act;
+  if (act === 'toggle') { expanded.has(id) ? expanded.delete(id) : expanded.add(id); render(); }
+  else if (act === 'kids') { collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id); render(); }
+  else if (act === 'assign') openPop(id, b);
+  else if (act === 'detail') openSeatDrawer(id);
+});
+$('#expandAll').onclick = () => { M.seats.forEach(s => expanded.add(s.id)); collapsed.clear(); render(); };
+$('#collapseAll').onclick = () => { expanded.clear(); render(); fit(true); };
+
+/* ---------- filtros ---------- */
+$('#fArea').onchange = e => { F.area = e.target.value; render(); };
+$('#fPerson').onchange = e => { F.person = e.target.value; render(); };
+$('#fUnassigned').onchange = e => { F.unassigned = e.target.checked; render(); };
+$('#fWarn').onchange = e => { F.warn = e.target.checked; render(); };
+$('#fClear').onclick = () => { F.area = ''; F.person = ''; F.unassigned = false; F.warn = false; render(); };
+
+/* ---------- búsqueda ---------- */
+let qt;
+$('#q').addEventListener('input', e => { clearTimeout(qt); qt = setTimeout(() => { Q = e.target.value; computeHits(); render(); if (hits.length) focusSeat(hits[0].id); }, 160); });
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); step(e.shiftKey ? -1 : 1); } });
+function step(d){ if (!hits.length) return; hitPos = (hitPos + d + hits.length) % hits.length; render(); focusSeat(hits[hitPos].id); }
+$('#qnext').onclick = () => step(1); $('#qprev').onclick = () => step(-1);
+
+/* ============================================================
+   Asignación de personas (separada de las responsabilidades)
+   ============================================================ */
+const pop = $('#pop'); let popState = null;
+function openPop(id, anchor){
+  const s = M.byId[id], p = eff(s);
+  popState = { id, confirm:false };
+  pop.innerHTML = `
+    <div class="pt">${p.status === 'empty' ? 'Asignar persona' : 'Cambiar persona'}</div>
+    <div class="ps">${esc(s.seat)}</div>
+    <input id="popIn" list="popPeople" autocomplete="off" placeholder="Escribe o elige una persona" value="${p.status === 'assigned' ? esc(p.name) : ''}">
+    <datalist id="popPeople">${knownPeople().map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>
+    <div class="err" id="popErr" hidden></div>
+    <div class="pw" id="popWarn" hidden></div>
+    <div class="pa">
+      <button class="btn primary" id="popSave">Guardar</button>
+      ${p.status !== 'empty' ? '<button class="btn" id="popClear">Quitar asignación</button>' : ''}
+      <button class="btn" id="popCancel">Cancelar</button>
+    </div>
+    ${s.excelPerson ? `<div class="pn">Valor en el Excel: «${esc(s.excelPerson)}»</div>` : `<div class="pn">El Excel no indica persona para este seat.</div>`}`;
+  pop.hidden = false;
+  const r = anchor.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = Math.min(Math.max(8, r.left), window.innerWidth - pw - 8), top = r.bottom + 6;
+  if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+  top = Math.min(Math.max(8, top), window.innerHeight - ph - 8);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  const inp = $('#popIn'); inp.focus(); inp.select();
+  inp.addEventListener('input', () => { popState.confirm = false; $('#popWarn').hidden = true; $('#popErr').hidden = true; $('#popSave').textContent = 'Guardar'; });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); popSave(); } });
+  $('#popSave').onclick = popSave;
+  $('#popCancel').onclick = closePop;
+  const c = $('#popClear'); if (c) c.onclick = () => { setAssignment(id, null); closePop(); toast('Asignación quitada.'); };
+}
+function popSave(){
+  const s = M.byId[popState.id], v = $('#popIn').value.replace(/\s+/g,' ').trim();
+  if (!v) { const er = $('#popErr'); er.textContent = 'Escribe un nombre o usa «Quitar asignación».'; er.hidden = false; return; }
+  const k = personKey(v);
+  const others = M.seats.filter(o => o !== s && eff(o).status === 'assigned' && personKey(eff(o).name) === k);
+  if (others.length && !popState.confirm) {
+    const w = $('#popWarn');
+    w.innerHTML = `<strong>Esta persona ya está asignada a otro seat.</strong><br>Ocupa: ${others.map(o => '«' + esc(o.seat) + '»').join(', ')}.<br>Una persona puede ocupar varios seats; decide si mantener también esta asignación.`;
+    w.hidden = false; popState.confirm = true; $('#popSave').textContent = 'Asignar igualmente'; return;
+  }
+  setAssignment(s.id, v); closePop(); toast(`«${v}» asignado a «${s.seat}».`);
+}
+function closePop(){ pop.hidden = true; popState = null; }
+function setAssignment(id, val){
+  const s = M.byId[id];
+  const excelVal = s.excelStatus === 'assigned' ? s.excelPerson : null;
+  if ((val === null && (s.excelStatus === 'empty' || s.excelStatus === 'vacant')) || (val !== null && val === excelVal)) delete overrides[id];
+  else overrides[id] = { person: val };
+  dirty = true; render();
+}
+document.addEventListener('pointerdown', e => { if (!pop.hidden && !pop.contains(e.target) && !e.target.closest('[data-act="assign"]')) closePop(); });
+$('#save').onclick = () => {
+  const ok = LS.set(KEY_ASSIGN, JSON.stringify({ savedAt:new Date().toISOString(), source:M.raw.fileName, assignments:overrides }));
+  if (ok) { dirty = false; renderSaveState(); toast('Asignaciones guardadas en este navegador.'); }
+  else toast('Este navegador no permite guardar localmente. Usa «Exportar» para conservar las asignaciones.', 4200);
+};
+$('#reset').onclick = () => {
+  if (!confirm('¿Restablecer las asignaciones del Excel?\nSe descartan todas las asignaciones hechas desde la interfaz (también las guardadas en este navegador).')) return;
+  overrides = {}; LS.del(KEY_ASSIGN); dirty = false; render(); toast('Asignaciones restablecidas al estado del Excel.');
+};
+$('#export').onclick = () => {
+  const q = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
+  const lines = [['Función principal','Asiento','Persona','Origen','Valor en el Excel'].map(q).join(';')];
+  M.seats.forEach(s => { const p = eff(s); lines.push([s.area, s.seat, p.status === 'assigned' || p.status === 'multi' ? p.name : '', p.source === 'edit' ? 'Editado en la interfaz' : 'Excel', s.excelPerson].map(q).join(';')); });
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'asignaciones-accountability-chart.csv'; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+};
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ============================================================
+   Panel lateral: detalle, revisión, guía
+   ============================================================ */
+const drawer = $('#drawer');
+function openDrawer(head, body){
+  $('#drawerHead').innerHTML = head; $('#drawerBody').innerHTML = body; $('#drawerBody').scrollTop = 0;
+  drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false');
+}
+function closeDrawer(){ drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); }
+$('#drawerClose').onclick = closeDrawer;
+const issueHTML = i => `<div class="issue ${i.level}">${esc(i.text)}${i.src ? `<span class="src">${esc(i.src)}</span>` : ''}</div>`;
+function openSeatDrawer(id){
+  const s = M.byId[id], p = eff(s), iss = issuesOf(s), par = s.parentId ? M.byId[s.parentId] : null;
+  const kids = M.children[s.id] || [];
+  const personTxt = p.status === 'assigned' ? esc(p.name) : p.status === 'multi' ? '⚠ Revisar asignación' : 'Sin asignar';
+  let b = '';
+  b += `<div class="kv">
+    <span>Persona</span><span><b>${personTxt}</b>${p.source === 'edit' ? ' · editado en la interfaz' : ''}</span>
+    <span>En el Excel</span><span>${s.excelPerson ? '«' + esc(s.excelPerson) + '»' : '<i>vacío</i>'}</span>
+    <span>Reporta a</span><span>${par ? esc(par.seat) : 'Relación por definir'}${s.parentRaw && (!par || norm(par.seat) !== norm(s.parentRaw)) ? ` <i>(Excel: «${esc(s.parentRaw)}»)</i>` : ''}</span>
+    ${kids.length ? `<span>Dependen</span><span>${kids.map(k => esc(k.seat)).join(' · ')}</span>` : ''}
+    <span>Fila del Excel</span><span>${s.row} (hoja «${esc(M.raw.seatsSheet.name)}»)</span>
+  </div>`;
+  if (iss.length) b += `<h3>Avisos</h3>` + iss.map(issueHTML).join('');
+  b += `<h3>5 responsabilidades</h3>`;
+  b += s.respOk ? `<ol class="resp-list">${s.resp.map(x => `<li>${esc(x.text)}</li>`).join('')}</ol>`
+                : `<div class="resp-bad">⚠ Revisar responsabilidades — contenido original:</div><div class="raw">${esc(s.respRaw.trim()) || '<i>(vacío)</i>'}</div>`;
+  b += '<dl>' + DETAIL_FIELDS.map(([k,l]) => `<dt>${l}</dt>` + (s[k] ? `<dd>${esc(s[k])}</dd>` : '<dd class="none">No indicado en el Excel</dd>')).join('') + '</dl>';
+  const head = `<div class="area" style="color:var(${s.area ? M.areaColor[s.area] : '--muted'})">${esc(s.area || (s.isLead ? 'Liderazgo · EOS' : 'Sin función principal'))}</div><h2>${esc(s.seat || '(sin nombre)')}</h2>`;
+  openDrawer(head, b);
+}
+$('#openReview').onclick = () => {
+  const seats = M.seats;
+  const nResp = seats.reduce((a,s) => a + (s.respOk ? 5 : 0), 0);
+  let b = `<h3>Verificación de la carga</h3><div class="kv">
+    <span>Asientos leídos</span><span>${seats.length} (hoja «${esc(M.raw.seatsSheet.name)}»)</span>
+    <span>En la estructura</span><span>${seats.length - M.pendingZone.length}</span>
+    <span>Pendientes de clasificación</span><span>${seats.filter(s=>s.pending).length}</span>
+    <span>Con exactamente 5 responsabilidades</span><span>${seats.filter(s=>s.respOk).length} de ${seats.length} (${nResp} responsabilidades)</span>
+    <span>Relaciones «Reporta a» resueltas</span><span>${seats.filter(s=>s.parentId).length} de ${seats.filter(s=>s.parentRaw).length} indicadas</span>
+    <span>Asignados / sin asignar</span><span>${seats.filter(s=>eff(s).status==='assigned').length} / ${seats.filter(s=>eff(s).status==='empty').length}</span>
+    ${M.missingCols.length ? `<span>Columnas no encontradas</span><span>${M.missingCols.join(', ')}</span>` : ''}
+  </div>`;
+  const withW = seats.filter(s => issuesOf(s).some(i => i.level !== 'info'));
+  b += `<h3>Avisos por asiento (${withW.length})</h3>`;
+  b += withW.map(s => `<div class="rv-seat"><div class="h"><b>${esc(s.seat)}</b><button class="link" data-go="${s.id}">Ver en el chart</button></div>${issuesOf(s).filter(i=>i.level!=='info').map(issueHTML).join('')}</div>`).join('') || '<p>Sin avisos.</p>';
+  const multi = new Map();
+  seats.forEach(s => { const p = eff(s); if (p.status === 'assigned') { const k = personKey(p.name); if (!multi.has(k)) multi.set(k, {name:personBase(p.name), seats:[]}); multi.get(k).seats.push(s.seat); } });
+  const mm = [...multi.values()].filter(x => x.seats.length > 1);
+  b += `<h3>Personas en varios seats (${mm.length})</h3>` + (mm.length ? mm.map(x => `<div class="issue multi"><b>${esc(x.name)}</b>: ${x.seats.map(esc).join(' · ')}</div>`).join('') : '<p>Ninguna.</p>');
+  if (M.refs.length) {
+    const g = new Map(); M.refs.forEach(r => { if (!g.has(r.target)) g.set(r.target, new Set()); g.get(r.target).add(r.from.seat); });
+    b += `<h3>Referencias sin asiento correspondiente</h3><p style="font-size:12.5px;color:var(--muted);margin:0 0 6px">Nombres usados en «Qué NO incluye» que no coinciden literalmente con ningún asiento del Excel. No se han vinculado.</p>` +
+      [...g.entries()].map(([t, from]) => `<div class="issue info">«${esc(t)}» <span class="src">en: ${[...from].map(esc).join(' · ')}</span></div>`).join('');
+  }
+  const infos = seats.map(s => [s, s.issues.filter(i => i.level === 'info')]).filter(([,l]) => l.length);
+  if (infos.length) b += `<h3>Notas informativas</h3>` + infos.map(([s,l]) => `<div class="issue info"><b>${esc(s.seat)}</b> — ${l.map(i=>esc(i.text)).join(' ')}</div>`).join('');
+  openDrawer('<div class="area">Control de calidad EOS</div><h2>Revisión del chart</h2>', b);
+};
+$('#drawerBody').addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (!g) return; const id = g.dataset.go; let p = M.byId[id].parentId; while (p) { collapsed.delete(p); p = M.byId[p].parentId; } render(); focusSeat(id); flash(id); });
+function flash(id){ const el = stage.querySelector(`.card[data-id="${CSS.escape(id)}"]`); if (!el) return; el.classList.add('hit','cur'); setTimeout(() => { el.classList.remove('cur'); if (!hits.some(h => h.id === id)) el.classList.remove('hit'); }, 1600); }
+$('#openGuide').onclick = () => {
+  const g = M.raw.guideSheet;
+  if (!g || !g.rows.length) { openDrawer('<h2>Guía</h2>', '<p>El Excel no contiene hoja de guía.</p>'); return; }
+  const b = g.rows.map(r => {
+    const c = r.map(x => String(x ?? '').trim()).filter(Boolean);
+    if (!c.length) return '';
+    if (c.length === 1) return /^(\d+\.\s|[A-ZÁÉÍÓÚÑ0-9 ·:¿?«»\-]{8,}$)/.test(c[0]) ? `<div class="guide-h">${esc(c[0])}</div>` : `<p class="guide-p">${esc(c[0])}</p>`;
+    return `<div class="guide-row${c.length > 2 ? ' three' : ''}">${c.slice(0,3).map(x => `<div>${esc(x)}</div>`).join('')}</div>`;
+  }).join('');
+  openDrawer(`<div class="area">Hoja «${esc(g.name)}» del Excel</div><h2>Guía del Accountability Chart</h2>`, b);
+};
+
+/* ============================================================
+   Sustituir el Excel (opcional: descarga la librería SheetJS)
+   ============================================================ */
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('no se pudo descargar el lector de Excel (se necesita conexión a internet)')); document.head.append(s); }); }
+$('#loadXlsx').onclick = () => $('#xlsxFile').click();
+$('#xlsxFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    const wb = XLSX.read(await f.arrayBuffer(), { type:'array' });
+    const toRows = n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, defval:'', raw:false, blankrows:false });
+    const seatsName = wb.SheetNames.find(n => (toRows(n)[0] || []).some(h => ['asiento','seat'].includes(norm(h))));
+    if (!seatsName) throw new Error('no se encontró ninguna hoja con la columna «Asiento»');
+    const gName = wb.SheetNames.find(n => n !== seatsName && /descrip|gu[ií]a/i.test(n));
+    const raw = { fileName:f.name, seatsSheet:{ name:seatsName, rows:toRows(seatsName) }, guideSheet: gName ? { name:gName, rows:toRows(gName).filter(r => r.some(v => String(v).trim())) } : null };
+    const m = buildModel(raw);
+    if (!m.seats.length) throw new Error('la hoja no contiene asientos');
+    RAW = raw; M = m; usingLoaded = true; LS.set(KEY_RAW, JSON.stringify(raw));
+    expanded.clear(); collapsed.clear(); Q = ''; $('#q').value = ''; hits = [];
+    render(); fit(true); toast(`Cargado «${f.name}»: ${m.seats.length} asientos.`, 3500);
+  } catch(err) { alert('No se pudo cargar el Excel: ' + err.message + '.'); }
+};
+
+/* ---------- varios ---------- */
+let tt; function toast(t, ms = 2400){ const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), ms); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (!pop.hidden) closePop(); else if (drawer.classList.contains('open')) closeDrawer(); }
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus(); }
+});
+
+render();
+requestAnimationFrame(() => fit(false));
+})();
+</script>
+</body>
+</html>
